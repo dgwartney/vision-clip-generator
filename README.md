@@ -27,5 +27,3 @@ GoogleGenerateVC.py --file ScriptName.txt --record 1
 Operation
 After running the script it will iterate through the text file. When it hits an IVA line it will call the API to generate the audio from the text and then play the TTS through the laptop speakers. When it hits a User line it will print out what you are supposed to say and print out “Speak Now” when you are supposed to speak. The User audio is recorded through the laptop microphone. At the end of the call it will stitch all of the audio together in a file called “vc.wav”. 
 
-
->>>>>>> 2462758 (Minimal pieces)
