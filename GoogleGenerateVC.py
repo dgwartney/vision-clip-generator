@@ -11,17 +11,19 @@ import requests
 import base64
 
 parser = argparse.ArgumentParser(
-    prog=os.path.basename(__file__),
+    prog="GenerateVC.py",
+#    usage="%(prog)s [-options]",
+#    add_help=False,
+#    formatter_class=lambda prog: argparse.HelpFormatter(
+#        prog, max_help_position=45, width=100)
 )
 
 # Set options
-options = parser.add_argument_group("options")
-parser.add_argument('-v', '--version', action='version', version='%(prog)s 1.0')
-options.add_argument("--file", metavar="<path to file>", help="Vision Clip File", required=True)
-options.add_argument("--record", metavar=1, help="The customer side is recorded using the microphone rather than TTS")
+# options = parser.add_argument_group("options")
+parser.add_argument("--file", metavar="<path>", nargs="?", help="Path to Vision Clip File", required=True)
+parser.add_argument("--record", metavar="1", help="The customer side is recorded using the microphone rather than TTS")
 
 args = parser.parse_args()
-
 
 # Note: if only language is set, the default voice of that language is chosen.
 # speech_config.speech_synthesis_language = "en-US" # e.g. "de-DE"
@@ -29,19 +31,15 @@ args = parser.parse_args()
 # The voice setting will not overwrite the voice element in input SSML.
 # speech_config.speech_synthesis_voice_name ="en-US-JennyNeural"
 api_key = os.getenv('GOOGLE_API_KEY')
-url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key=${api_key}'
+url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key={api_key}'
 
 ignore = True
-# Variable to increment for each .wav file generated
 fnum = 1
-
-# Configuration of external command line manipulation tools
 SoxURL = "sox-14.4.2/sox "
 RecURL = "sox-14.4.2/rec "
 PlayURL = "afplay "
 
 vfile = open(args.file, "r")
-finalAudio = None
 for line in vfile:
 
     if ignore is True:
@@ -64,6 +62,7 @@ for line in vfile:
                 ivr = line.split(':', 1)
                 print(line)
                 text = ivr[1]
+                # ssml = '<speak version="1.0" xmlns="https://www.w3.org/2001/10/synthesis" xml:lang="en-US">' + text + '</speak>'
                 ssml = text
                 fn = str(fnum) + '.wav'
 
@@ -87,6 +86,7 @@ for line in vfile:
                 }
 
                 r = requests.post(url, json=payload, headers=hheaders)
+                # print(r.json())
                 aJson = r.json()
                 audioContent = aJson['audioContent']
                 decoded_data = base64.b64decode(audioContent, ' /')
