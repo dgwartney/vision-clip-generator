@@ -1,0 +1,36 @@
+Vision Clip 1: Internet not working
+Voice: Female
+Caller: Male, early 30’s.
+
+
+<ringback>
+
+Caller:6: I need to confirm my reservation for Kore Suites Hotel.
+
+IVA: Do you happen to have the confirmation number?
+
+Caller:3: Where would I find that?
+
+IVA: You should have received a confirmation number via the email you used for the reservation.
+
+Caller:3: One minute.
+
+IVA: Let me know when you are ready.
+
+Caller:3: Okay, I found it.
+
+IVA: Please give me the  confirmation number.
+
+Caller:5: 9326572
+
+IVA: Looking up that confirmation for you.
+
+IVA: We have your booked reservation for August 3rd through the 5th.
+
+IVA: Any idea when you will arrive on the 3rd? Check In time is 4PM. I can arrange for an early check in on that day if you would like.
+
+Caller:5: Our flight does not arrive until 5PM.
+
+IVA: Okay, looks like you are all set
+
+<hangup>
