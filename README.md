@@ -10,9 +10,22 @@ pip3 install -r requirements.txt
 
 ## Configure API Key
 
-```angular2html
+Create a file name `env.sh` and add the following to the file:
+
+```bash
 export GOOGLE_API_KEY=<Google API Key>
 ```
+
+## Voice Configuration
+
+The following environment variables can be set to change the voice
+
+`VA_LOCALE` - Locale of the virtual assistant e.g. en-US
+`VA_VOICE` = os.getenv('VA_VOICE', 'en-US-Journey-O')
+CALLER_LOCALE = os.getenv('CALLER_LOCALE', 'en-US')
+CALLER_VOICE = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
+
+## SOX
 
 ## How to Execute the Script
 
