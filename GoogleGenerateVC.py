@@ -104,7 +104,7 @@ for line in vfile:
                 # Try sleeping to see if the audio file just needs some time to close
                 time.sleep(1)
 
-                #os.system(PlayURL + fn)
+                os.system(PlayURL + fn)
                 finalAudio += fn + ' '
                 fnum = fnum + 1
             elif line.startswith('Caller'):
