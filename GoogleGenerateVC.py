@@ -39,6 +39,39 @@ SoxURL = "sox-14.4.2/sox "
 RecURL = "sox-14.4.2/rec "
 PlayURL = "afplay "
 
+VA_LOCALE = os.getenv('VA_LOCALE', 'en-US')
+VA_VOICE = os.getenv('VA_VOICE', 'en-US-Journey-O')
+CALLER_LOCALE = os.getenv('CALLER_LOCALE', 'en-US')
+CALLER_VOICE = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
+
+def text_to_wav(voice, rate, locale, ssml, fn):
+    hheaders = {'content-type': 'application/json'}
+    payload = {
+        "audioConfig": {
+            "audioEncoding": "LINEAR16",
+            "effectsProfileId": [
+                "telephony-class-application"
+            ],
+            "pitch": 0,
+            "speakingRate": rate
+        },
+        "input": {
+            "text": ssml
+        },
+        "voice": {
+            "languageCode": locale,
+            "name": voice
+        }
+    }
+
+    r = requests.post(url, json=payload, headers=hheaders)
+    aJson = r.json()
+    audioContent = aJson['audioContent']
+    decoded_data = base64.b64decode(audioContent, ' /')
+    with open(fn, 'wb') as pcm:
+        pcm.write(decoded_data)
+
+
 vfile = open(args.file, "r")
 for line in vfile:
 
@@ -66,37 +99,12 @@ for line in vfile:
                 ssml = text
                 fn = str(fnum) + '.wav'
 
-                hheaders = {'content-type': 'application/json'}
-                payload = {
-                    "audioConfig": {
-                        "audioEncoding": "LINEAR16",
-                        "effectsProfileId": [
-                            "telephony-class-application"
-                        ],
-                        "pitch": 0,
-                        "speakingRate": 1
-                    },
-                    "input": {
-                        "text": ssml
-                    },
-                    "voice": {
-                        "languageCode": "en-US",
-                        "name": "en-US-Studio-O"
-                    }
-                }
-
-                r = requests.post(url, json=payload, headers=hheaders)
-                # print(r.json())
-                aJson = r.json()
-                audioContent = aJson['audioContent']
-                decoded_data = base64.b64decode(audioContent, ' /')
-                with open(fn, 'wb') as pcm:
-                    pcm.write(decoded_data)
+                text_to_wav(VA_VOICE, 1, VA_LOCALE, ssml, fn)
 
                 # Try sleeping to see if the audio file just needs some time to close
                 time.sleep(1)
 
-                os.system(PlayURL + fn)
+                #os.system(PlayURL + fn)
                 finalAudio += fn + ' '
                 fnum = fnum + 1
             elif line.startswith('Caller'):
@@ -130,7 +138,7 @@ for line in vfile:
 
                     # synthesizer = SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
                     # synthesizer.speak_text_async(ssml)
-                    text_to_wav("en-US-Studio-M", ssml, fn)
+                    text_to_wav(CALLER_VOICE, 1, CALLER_LOCALE, ssml, fn)
 
                 finalAudio += fn + ' '
                 fnum = fnum + 1

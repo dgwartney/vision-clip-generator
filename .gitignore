@@ -1,3 +1,11 @@
+# Output files
+*.wav
+# Input files
+dialogs/
+# Environment variables
+env.sh
+# IDE
+.idea
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
