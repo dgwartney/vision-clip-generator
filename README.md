@@ -2,11 +2,28 @@
 
 ## Pre-requisites
 
-To run the Vision Clip generator application first you need to install any prerequisites. In this directory you will find a file called requirements.txt. Please download that to the directory where you have expanded the zip file. Then run the following command:
+This project uses `uv` for Python environment and dependency management.
+
+### Install uv
+
+If you don't have `uv` installed, install it first:
 
 ```shell
-pip3 install -r requirements.txt
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
+
+### Setup Python Virtual Environment
+
+To set up the Python virtual environment and install all dependencies:
+
+```shell
+uv sync
+```
+
+This will:
+- Create a `.venv` virtual environment
+- Install all required dependencies (protobuf, requests, sounddevice, soundfile)
+- Lock dependency versions in `uv.lock`
 
 ## Configure API Key
 
@@ -25,17 +42,65 @@ The following environment variables can be set to change the voice
 CALLER_LOCALE = os.getenv('CALLER_LOCALE', 'en-US')
 CALLER_VOICE = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
 
+## Running Tests
+
+This project includes comprehensive unit tests to validate the execution of the program.
+
+### Run All Tests
+
+```shell
+# Using uv directly
+uv run pytest
+
+# Or using make
+make test
+```
+
+### Run Tests with Coverage Report
+
+```shell
+# Using uv directly
+uv run pytest --cov=. --cov-report=html
+
+# Or using make
+make test-cov
+```
+
+This will generate an HTML coverage report in the `htmlcov/` directory.
+
+### Test Coverage
+
+The test suite includes:
+- TTS API payload validation
+- Line parsing logic (IVA, Caller, special tags)
+- Dialog file processing
+- Environment variable handling
+- Audio file operations
+- Recording duration calculations
+- Integration tests
+
+All tests use mocking to avoid external dependencies and actual API calls.
+
 ## SOX
 
 ## How to Execute the Script
 
-From the command line:
+From the command line, use one of the following methods:
+
+### Option 1: Using uv run (recommended)
 
 ```shell
-GoogleGenerateVC.py --file ScriptName.txt --record 1
+uv run python GoogleGenerateVC.py --file ScriptName.txt --record 1
 ```
 
-**Note**: in the above there are two _- signs before “file” and “record”. The script name is the name of the vision clip definition file (the script of the conversation). Without the record option the script is supposed to record both sides of the conversation in TTS, caller in one voice and the IVA in another. Currently I have not updated that code so it should fail, if for some reason we want to support this to make quick pro-types without re-recording every time I can update the script to support this. Currently we also would need to modify the python script to change the voice used in the demo.
+### Option 2: Activate virtual environment first
+
+```shell
+source .venv/bin/activate
+python GoogleGenerateVC.py --file ScriptName.txt --record 1
+```
+
+**Note**: in the above there are two _- signs before "file" and "record". The script name is the name of the vision clip definition file (the script of the conversation). Without the record option the script is supposed to record both sides of the conversation in TTS, caller in one voice and the IVA in another. Currently I have not updated that code so it should fail, if for some reason we want to support this to make quick pro-types without re-recording every time I can update the script to support this. Currently we also would need to modify the python script to change the voice used in the demo.
 
 ## Operation
 After running the script it will iterate through the text file. When it hits an IVA line it will call the API to

@@ -1,0 +1,32 @@
+[project]
+name = "vision-clip-generator"
+version = "0.1.0"
+description = "Python application that creates conversational audio demos by combining Text-to-Speech (TTS) and live microphone recordings"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "protobuf>=4.23.4",
+    "requests>=2.31.0",
+    "sounddevice>=0.4.5",
+    "soundfile>=0.11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+    "pytest-cov>=4.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+only-include = ["*.py", "Audio/*", "dialogs/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v --cov=. --cov-report=term-missing --cov-report=html"
