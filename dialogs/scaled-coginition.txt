@@ -1,0 +1,15 @@
+Scaled Cognition Script:
+
+Opening:
+
+As we have just seen, our current Genesys Virtual Agents can meet the demands of traditionally difficult use cases. Be it multi-intent recognition, background noises, and even adaptive empathy. But now, let's take a sneak peek into the near future…introducing “Genesys Agentic Virtual Agents”. Connected and scaffolded by the same robust Genesys orchestration platform, now backed with the additional power of a Large Action Model, APT 1, from our recent partnership with Scaled Cognition...Let's have a closer look.
+
+Part 1
+As you can see, our Product, Design and Engineering teams have been hard at work in designing a clean, modern interface that will allow for easy configuration of a whole library of Agentic Virtual Agents. Providing all of the necessary layers to define specialty agents to meet our customers needs. Whether the need is for traditional data actions already defined, more cutting edge protocols such as MCP or A2A integration or even custom tools designed from the ground up, we have it covered.
+
+Part 2
+Oh and don’t worry, as we get closer to the release of Knowledge v3, it will also be playing a big part for Virtual Agents. Supporting multiple sources and features, such as Semantic Search, Generative Responses and Summarization. 
+
+And then, a long requested feature, “Configurable Guardrails”.…no code needed, simply describe in natural language terms, for both digital or voice engagements for the agent, and the guardrails are set and manageable.
+
+So as we wrap up todays brief look of what’s to come for Genesys Virtual Agents, I think you will agree, the future is bright! 
