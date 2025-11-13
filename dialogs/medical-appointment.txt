@@ -1,25 +1,53 @@
 <ringback>
 
+IVA: Good morning, you’ve reached Willow Creek Hospital. I’m the virtual assistant. How can I assist you today?
+
 Caller:10: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what the instructions were to prepare for it.
 
-IVA: No problem, let's start by rescheduling your appointment first. I can help with that. Can I first confirm your identity by asking you for your birthday?
+IVA: Sure thing! I can help with that. 
+
+IVA: Let’s start by rescheduling your appointment — can I just confirm your date of birth first?
 
 Caller:3: 1/1/91
 
-IVA: Thanks, Sam. I've found your appointment on file. What day works better for you?
+IVA: Thanks, Sam. I’ve got your appointment here.
+
+IVA: What day would work better for you?
 
 Caller:5: Maybe Thursday instead?
 
 IVA: I have a 10:30 AM slot or 2:45 PM on Thursday. Which one would you like?
 
-Caller:5: Uhm, 10:30 AM on Thursday is good.
+Caller:8: Uhm, 10:30 AM on Thursday is good.
 
-IVA: Sure! I can make that change for you. Now, for your bloodwork, please fast for 8 hours and bring a photo ID. Would you like me to text these instructions to you?
+IVA: Perfect, I’ll get that updated for you.
+
+IVA: Now, just a reminder — since this is for bloodwork, you’ll need to fast for 8 hours. And as always bring a photo ID.
+
+IVA: Would you like me to text those instructions to you?
 
 Caller:5: Yes, that’d be great.
 
-IVA: Done. I’ve sent your new appointment details and prep instructions by text. Anything else I can do for you today?
+<text-received>
 
-Caller:5: Nope, that’s it. Thanks!
+IVA: Great! I’ve sent your new appointment and prep details by text.
 
-IVA: You’re all set—see you Thursday!
+IVA: Anything else I can do for you today?
+
+Caller:10: I am not sure where you are located?
+
+IVA: We’re located at 4820 Willowbend Drive, Riverview, OH 44128, right across from the Riverview Community Park.
+
+IVA: Would you like me to text that address and our directions to you?
+
+Caller:8: Sure, that would help a lot
+
+<text-received>
+
+IVA: All set — I’ve just sent the details to your phone.
+
+IVA: Anything else I can do for you today?
+
+Caller:8: Nope, that’s it. Thanks!
+
+IVA: All set! Thanks for calling, and we’ll see you Thursday morning.
