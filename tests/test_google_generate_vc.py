@@ -4,69 +4,296 @@ import pytest
 import os
 import sys
 import tempfile
-from unittest.mock import Mock, patch, MagicMock, mock_open
+from unittest.mock import Mock, patch, MagicMock, mock_open, call
 import base64
 
-
-# Import the module - we'll need to handle the script execution
+# Import the module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from GoogleGenerateVC import VisionClipGenerator
+
+
+class TestVisionClipGeneratorInit:
+    """Test VisionClipGenerator class initialization"""
+
+    def test_init_with_api_key(self, mocker):
+        """Test initialization with API key provided"""
+        mocker.patch.dict(os.environ, {}, clear=True)
+        generator = VisionClipGenerator(api_key='test_api_key')
+
+        assert generator.api_key == 'test_api_key'
+        assert 'test_api_key' in generator.url
+        assert generator.sox_path == "sox-14.4.2/sox "
+        assert generator.va_locale == 'en-US'
+        assert generator.va_voice == 'en-US-Journey-O'
+
+    def test_init_with_env_variable(self, mocker):
+        """Test initialization with API key from environment"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'env_api_key'}, clear=True)
+        generator = VisionClipGenerator()
+
+        assert generator.api_key == 'env_api_key'
+        assert 'env_api_key' in generator.url
+
+    def test_init_without_api_key(self, mocker):
+        """Test initialization fails without API key"""
+        mocker.patch.dict(os.environ, {}, clear=True)
+
+        with pytest.raises(ValueError, match="GOOGLE_API_KEY must be set"):
+            VisionClipGenerator()
+
+    def test_init_with_custom_environment(self, mocker):
+        """Test initialization with custom voice environment variables"""
+        mocker.patch.dict(os.environ, {
+            'GOOGLE_API_KEY': 'test_key',
+            'VA_LOCALE': 'es-ES',
+            'VA_VOICE': 'es-ES-ElviraNeural',
+            'CALLER_LOCALE': 'fr-FR',
+            'CALLER_VOICE': 'fr-FR-DeniseNeural'
+        }, clear=True)
+
+        generator = VisionClipGenerator()
+
+        assert generator.va_locale == 'es-ES'
+        assert generator.va_voice == 'es-ES-ElviraNeural'
+        assert generator.caller_locale == 'fr-FR'
+        assert generator.caller_voice == 'fr-FR-DeniseNeural'
+
+    def test_init_state_variables(self, mocker):
+        """Test that state variables are initialized correctly"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator()
+
+        assert generator.ignore is True
+        assert generator.fnum == 1
+        assert generator.final_audio == ''
 
 
 class TestTextToWav:
-    """Test the text_to_wav function logic"""
+    """Test the text_to_wav method"""
 
-    def test_text_to_wav_function_logic(self, mocker):
-        """Test TTS API call logic without importing the module"""
-        # Test the logic that would be in text_to_wav
-        api_key = 'test_api_key'
-        url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key={api_key}'
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
 
-        voice = 'en-US-Journey-O'
-        rate = 1
-        locale = 'en-US'
-        text = 'Hello world'
-
-        # Build the expected payload
-        payload = {
-            "audioConfig": {
-                "audioEncoding": "LINEAR16",
-                "effectsProfileId": ["telephony-class-application"],
-                "pitch": 0,
-                "speakingRate": rate
-            },
-            "input": {
-                "text": text
-            },
-            "voice": {
-                "languageCode": locale,
-                "name": voice
-            }
+    def test_text_to_wav_api_call(self, generator, mocker):
+        """Test that text_to_wav makes correct API call"""
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            'audioContent': base64.b64encode(b'fake_audio_data').decode('utf-8')
         }
+        mock_post = mocker.patch('requests.post', return_value=mock_response)
+        mocker.patch('builtins.open', mocker.mock_open())
 
-        # Verify payload structure
-        assert payload['voice']['name'] == voice
-        assert payload['voice']['languageCode'] == locale
-        assert payload['audioConfig']['speakingRate'] == rate
-        assert payload['input']['text'] == text
-        assert payload['audioConfig']['audioEncoding'] == 'LINEAR16'
-        assert payload['audioConfig']['effectsProfileId'] == ["telephony-class-application"]
-        assert payload['audioConfig']['pitch'] == 0
+        generator.text_to_wav('en-US-Journey-O', 1.0, 'en-US', 'Hello world', 'test.wav')
 
-    def test_audio_decoding_logic(self):
-        """Test base64 decoding logic for audio content"""
-        # Simulate what text_to_wav does with the API response
-        original_data = b'fake_audio_data_sample'
-        encoded_data = base64.b64encode(original_data).decode('utf-8')
+        # Verify API call was made
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        payload = call_args.kwargs['json']
 
-        # Simulate API response
-        aJson = {'audioContent': encoded_data}
-        audioContent = aJson['audioContent']
+        assert payload['voice']['name'] == 'en-US-Journey-O'
+        assert payload['voice']['languageCode'] == 'en-US'
+        assert payload['audioConfig']['speakingRate'] == 1.0
+        assert payload['input']['text'] == 'Hello world'
 
-        # Decode it
-        decoded_data = base64.b64decode(audioContent, ' /')
+    def test_text_to_wav_file_write(self, generator, mocker):
+        """Test that text_to_wav writes audio to file"""
+        original_data = b'audio_data_sample'
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            'audioContent': base64.b64encode(original_data).decode('utf-8')
+        }
+        mocker.patch('requests.post', return_value=mock_response)
 
-        # Verify it matches original
-        assert decoded_data == original_data
+        mock_file = mocker.mock_open()
+        mocker.patch('builtins.open', mock_file)
+
+        generator.text_to_wav('en-US-Journey-O', 1.0, 'en-US', 'Test', 'output.wav')
+
+        # Verify file was opened and written
+        mock_file.assert_called_once_with('output.wav', 'wb')
+        handle = mock_file()
+        handle.write.assert_called_once_with(original_data)
+
+
+class TestProcessIvaLine:
+    """Test the process_iva_line method"""
+
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
+
+    def test_process_iva_line(self, generator, mocker):
+        """Test processing of IVA line"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch('time.sleep')
+        mocker.patch('os.system')
+
+        generator.fnum = 5
+        generator.final_audio = 'existing.wav '
+
+        line = 'IVA: Hello, how can I help you?'
+        generator.process_iva_line(line)
+
+        # Verify text_to_wav was called with correct parameters
+        generator.text_to_wav.assert_called_once_with(
+            generator.va_voice, 1, generator.va_locale, ' Hello, how can I help you?', '5.wav'
+        )
+
+        # Verify state was updated
+        assert generator.fnum == 6
+        assert '5.wav' in generator.final_audio
+
+
+class TestProcessCallerLine:
+    """Test the process_caller_line method"""
+
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
+
+    def test_process_caller_line_tts_mode(self, generator, mocker):
+        """Test processing caller line with TTS (not recording)"""
+        mocker.patch.object(generator, 'text_to_wav')
+
+        generator.fnum = 3
+        line = 'Caller:5: I need help with my reservation'
+
+        generator.process_caller_line(line, record_mode=False)
+
+        # Verify TTS was called
+        generator.text_to_wav.assert_called_once_with(
+            generator.caller_voice, 1, generator.caller_locale, ' I need help with my reservation', '3.wav'
+        )
+
+        assert generator.fnum == 4
+        assert '3.wav' in generator.final_audio
+
+    def test_process_caller_line_record_mode(self, generator, mocker):
+        """Test processing caller line with microphone recording"""
+        mock_rec = mocker.patch('sounddevice.rec', return_value=Mock())
+        mocker.patch('sounddevice.wait')
+        mocker.patch('soundfile.write')
+        mocker.patch('os.system')
+
+        generator.fnum = 2
+        line = 'Caller:7: Test message'
+
+        generator.process_caller_line(line, record_mode=True)
+
+        # Verify recording was called with correct parameters
+        expected_samples = 7 * 24000
+        mock_rec.assert_called_once_with(expected_samples, samplerate=24000, channels=1)
+
+        assert generator.fnum == 3
+        assert '2.wav' in generator.final_audio
+
+
+class TestProcessSpecialTag:
+    """Test the process_special_tag method"""
+
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
+
+    def test_backend_tag(self, generator):
+        """Test processing <backend> tag"""
+        generator.final_audio = 'existing.wav '
+        generator.process_special_tag('<backend>')
+        assert 'Audio/backend.wav' in generator.final_audio
+
+    def test_sendmail_tag(self, generator):
+        """Test processing <sendmail> tag"""
+        generator.final_audio = 'existing.wav '
+        generator.process_special_tag('<sendmail>')
+        assert 'Audio/swoosh.wav' in generator.final_audio
+
+    def test_transfer_tag(self, generator):
+        """Test processing <transfer> tag"""
+        generator.final_audio = 'existing.wav '
+        generator.process_special_tag('<transfer>')
+        assert 'Audio/ringback.wav' in generator.final_audio
+
+    def test_text_tag(self, generator):
+        """Test processing <text> tag"""
+        generator.final_audio = 'existing.wav '
+        generator.process_special_tag('<text>')
+        assert 'Audio/text-received.wav' in generator.final_audio
+
+
+class TestProcessDialogFile:
+    """Test the process_dialog_file method"""
+
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
+
+    @pytest.fixture
+    def sample_dialog(self, tmp_path):
+        """Create a sample dialog file for testing"""
+        dialog_content = """Vision Clip 1: Test Dialog
+Voice: Female
+Caller: Male
+
+<ringback>
+
+IVA: Hello, how can I help you?
+
+Caller:3: I need assistance
+
+<backend>
+
+IVA: Let me help you with that.
+
+<hangup>
+"""
+        dialog_file = tmp_path / "test_dialog.txt"
+        dialog_file.write_text(dialog_content)
+        return str(dialog_file)
+
+    def test_process_dialog_file(self, generator, sample_dialog, mocker):
+        """Test processing a complete dialog file"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch('time.sleep')
+        mocker.patch('os.system')
+
+        output_file = generator.process_dialog_file(sample_dialog, record_mode=False)
+
+        # Verify output file path
+        assert output_file == 'vc.wav'
+
+        # Verify text_to_wav was called for both IVA lines and Caller line
+        assert generator.text_to_wav.call_count == 3  # 2 IVA lines + 1 Caller line
+
+        # Verify final audio includes all expected files
+        assert 'Audio/ringback.wav' in generator.final_audio
+        assert 'Audio/backend.wav' in generator.final_audio
+
+    def test_process_dialog_file_resets_state(self, generator, sample_dialog, mocker):
+        """Test that process_dialog_file resets state variables"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch('time.sleep')
+        mocker.patch('os.system')
+
+        # Set initial state
+        generator.fnum = 10
+        generator.final_audio = 'old_audio.wav '
+        generator.ignore = False
+
+        generator.process_dialog_file(sample_dialog, record_mode=False)
+
+        # State should be reset at start and incremented during processing
+        assert generator.fnum > 1
 
 
 class TestLineParsingLogic:
@@ -118,71 +345,25 @@ class TestLineParsingLogic:
         assert duration * 24000 == 168000  # num_samples calculation
 
 
-class TestDialogFileProcessing:
-    """Test processing of dialog script files"""
-
-    @pytest.fixture
-    def sample_dialog(self):
-        """Create a sample dialog file for testing"""
-        return """Vision Clip 1: Test Dialog
-Voice: Female
-Caller: Male
-
-<ringback>
-
-IVA: Hello, how can I help you?
-
-Caller:3: I need assistance
-
-<backend>
-
-IVA: Let me help you with that.
-
-<hangup>
-"""
-
-    def test_dialog_file_structure(self, sample_dialog):
-        """Test that dialog file has expected structure"""
-        lines = sample_dialog.strip().split('\n')
-
-        # Find key markers
-        assert '<ringback>' in sample_dialog
-        assert '<hangup>' in sample_dialog
-        assert 'IVA:' in sample_dialog
-        assert 'Caller:' in sample_dialog
-
-    def test_ignore_lines_before_ringback(self, sample_dialog):
-        """Test that lines before <ringback> are ignored"""
-        lines = sample_dialog.strip().split('\n')
-
-        found_ringback = False
-        for line in lines:
-            if line.startswith('<ringback>'):
-                found_ringback = True
-                break
-            # These lines should be ignored
-            if line.startswith('Vision Clip') or line.startswith('Voice:') or line.startswith('Caller:'):
-                assert not found_ringback
-
-
 class TestEnvironmentVariables:
     """Test environment variable handling"""
 
     def test_default_va_locale(self, mocker):
         """Test default VA_LOCALE value"""
-        mocker.patch.dict(os.environ, {}, clear=True)
-        default_locale = os.getenv('VA_LOCALE', 'en-US')
-        assert default_locale == 'en-US'
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator()
+        assert generator.va_locale == 'en-US'
 
     def test_default_va_voice(self, mocker):
         """Test default VA_VOICE value"""
-        mocker.patch.dict(os.environ, {}, clear=True)
-        default_voice = os.getenv('VA_VOICE', 'en-US-Journey-O')
-        assert default_voice == 'en-US-Journey-O'
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator()
+        assert generator.va_voice == 'en-US-Journey-O'
 
     def test_custom_environment_variables(self, mocker):
         """Test custom environment variable values"""
         custom_env = {
+            'GOOGLE_API_KEY': 'test_key',
             'VA_LOCALE': 'es-ES',
             'VA_VOICE': 'es-ES-ElviraNeural',
             'CALLER_LOCALE': 'es-ES',
@@ -190,17 +371,12 @@ class TestEnvironmentVariables:
         }
         mocker.patch.dict(os.environ, custom_env, clear=True)
 
-        assert os.getenv('VA_LOCALE') == 'es-ES'
-        assert os.getenv('VA_VOICE') == 'es-ES-ElviraNeural'
-        assert os.getenv('CALLER_LOCALE') == 'es-ES'
-        assert os.getenv('CALLER_VOICE') == 'es-ES-AlvaroNeural'
+        generator = VisionClipGenerator()
 
-    def test_google_api_key_required(self, mocker):
-        """Test that GOOGLE_API_KEY is required"""
-        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_api_key'}, clear=True)
-        api_key = os.getenv('GOOGLE_API_KEY')
-        assert api_key == 'test_api_key'
-        assert api_key is not None
+        assert generator.va_locale == 'es-ES'
+        assert generator.va_voice == 'es-ES-ElviraNeural'
+        assert generator.caller_locale == 'es-ES'
+        assert generator.caller_voice == 'es-ES-AlvaroNeural'
 
 
 class TestAudioProcessing:
@@ -245,42 +421,6 @@ class TestAudioProcessing:
         assert '2.wav' in sox_command
 
 
-class TestSpecialAudioTags:
-    """Test special audio tag handling"""
-
-    def test_backend_audio_file(self):
-        """Test <backend> tag adds backend audio file"""
-        finalAudio = ''
-        if '<backend>'.startswith('<backend>'):
-            finalAudio += 'Audio/backend.wav '
-
-        assert finalAudio == 'Audio/backend.wav '
-
-    def test_sendmail_audio_file(self):
-        """Test <sendmail> tag adds swoosh audio file"""
-        finalAudio = ''
-        if '<sendmail>'.startswith('<sendmail>'):
-            finalAudio += 'Audio/swoosh.wav '
-
-        assert finalAudio == 'Audio/swoosh.wav '
-
-    def test_transfer_audio_file(self):
-        """Test <transfer> tag adds ringback audio file"""
-        finalAudio = ''
-        if '<transfer>'.startswith('<transfer>'):
-            finalAudio += 'Audio/ringback.wav '
-
-        assert finalAudio == 'Audio/ringback.wav '
-
-    def test_text_audio_file(self):
-        """Test <text> tag adds text-received audio file"""
-        finalAudio = ''
-        if '<text>'.startswith('<text>'):
-            finalAudio += 'Audio/text-received.wav '
-
-        assert finalAudio == 'Audio/text-received.wav '
-
-
 class TestRecordingCalculations:
     """Test recording duration and sample calculations"""
 
@@ -308,39 +448,20 @@ class TestRecordingCalculations:
             assert numsamples == expected_samples
 
 
-class TestIntegration:
-    """Integration tests for the overall workflow"""
+class TestGenerateMethod:
+    """Test the public generate method"""
 
     @pytest.fixture
-    def temp_dialog_file(self, tmp_path):
-        """Create a temporary dialog file for testing"""
-        dialog_content = """Vision Clip 1: Test
-Voice: Female
-Caller: Male
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
 
-<ringback>
+    def test_generate_delegates_to_process_dialog_file(self, generator, mocker):
+        """Test that generate method delegates to process_dialog_file"""
+        mock_process = mocker.patch.object(generator, 'process_dialog_file', return_value='vc.wav')
 
-IVA: Hello
+        result = generator.generate('test.txt', record_mode=True)
 
-Caller:3: Hi there
-
-<backend>
-
-IVA: How can I help?
-
-<hangup>
-"""
-        dialog_file = tmp_path / "test_dialog.txt"
-        dialog_file.write_text(dialog_content)
-        return str(dialog_file)
-
-    def test_dialog_file_exists(self, temp_dialog_file):
-        """Test that the temporary dialog file exists and is readable"""
-        assert os.path.exists(temp_dialog_file)
-
-        with open(temp_dialog_file, 'r') as f:
-            content = f.read()
-            assert '<ringback>' in content
-            assert '<hangup>' in content
-            assert 'IVA:' in content
-            assert 'Caller:' in content
+        mock_process.assert_called_once_with('test.txt', True)
+        assert result == 'vc.wav'
