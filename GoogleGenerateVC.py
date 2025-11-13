@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Sequence
-
+from typing import Optional
 import argparse
 import os
 import sounddevice as sd
@@ -10,138 +9,228 @@ import time
 import requests
 import base64
 
-parser = argparse.ArgumentParser(
-    prog="GenerateVC.py",
-#    usage="%(prog)s [-options]",
-#    add_help=False,
-#    formatter_class=lambda prog: argparse.HelpFormatter(
-#        prog, max_help_position=45, width=100)
-)
 
-# Set options
-# options = parser.add_argument_group("options")
-parser.add_argument("--file", metavar="<path>", nargs="?", help="Path to Vision Clip File", required=True)
-parser.add_argument("--record", metavar="1", help="The customer side is recorded using the microphone rather than TTS")
+class VisionClipGenerator:
+    """
+    Vision Clip Generator - Creates conversational audio demos by combining
+    Text-to-Speech (TTS) and live microphone recordings.
+    """
 
-args = parser.parse_args()
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize the Vision Clip Generator.
 
-# Note: if only language is set, the default voice of that language is chosen.
-# speech_config.speech_synthesis_language = "en-US" # e.g. "de-DE"
-# The voice setting will overwrite language setting.
-# The voice setting will not overwrite the voice element in input SSML.
-# speech_config.speech_synthesis_voice_name ="en-US-JennyNeural"
-api_key = os.getenv('GOOGLE_API_KEY')
-url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key={api_key}'
+        Args:
+            api_key: Google API key for TTS. If None, reads from GOOGLE_API_KEY env var.
+        """
+        self.api_key = api_key or os.getenv('GOOGLE_API_KEY')
+        if not self.api_key:
+            raise ValueError("GOOGLE_API_KEY must be set in environment or passed to constructor")
 
-ignore = True
-fnum = 1
-SoxURL = "sox-14.4.2/sox "
-RecURL = "sox-14.4.2/rec "
-PlayURL = "afplay "
+        self.url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key={self.api_key}'
 
-VA_LOCALE = os.getenv('VA_LOCALE', 'en-US')
-VA_VOICE = os.getenv('VA_VOICE', 'en-US-Journey-O')
-CALLER_LOCALE = os.getenv('CALLER_LOCALE', 'en-US')
-CALLER_VOICE = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
+        # Audio processing paths
+        self.sox_path = "sox-14.4.2/sox "
+        self.rec_path = "sox-14.4.2/rec "
+        self.play_path = "afplay "
 
-def text_to_wav(voice, rate, locale, ssml, fn):
-    hheaders = {'content-type': 'application/json'}
-    payload = {
-        "audioConfig": {
-            "audioEncoding": "LINEAR16",
-            "effectsProfileId": [
-                "telephony-class-application"
-            ],
-            "pitch": 0,
-            "speakingRate": rate
-        },
-        "input": {
-            "text": ssml
-        },
-        "voice": {
-            "languageCode": locale,
-            "name": voice
+        # Voice configuration
+        self.va_locale = os.getenv('VA_LOCALE', 'en-US')
+        self.va_voice = os.getenv('VA_VOICE', 'en-US-Journey-O')
+        self.caller_locale = os.getenv('CALLER_LOCALE', 'en-US')
+        self.caller_voice = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
+
+        # Processing state
+        self.ignore = True
+        self.fnum = 1
+        self.final_audio = ''
+
+    def text_to_wav(self, voice: str, rate: float, locale: str, text: str, filename: str) -> None:
+        """
+        Convert text to WAV audio using Google Text-to-Speech API.
+
+        Args:
+            voice: Voice name (e.g., 'en-US-Journey-O')
+            rate: Speaking rate (1.0 is normal)
+            locale: Locale code (e.g., 'en-US')
+            text: Text to convert to speech
+            filename: Output WAV filename
+        """
+        headers = {'content-type': 'application/json'}
+        payload = {
+            "audioConfig": {
+                "audioEncoding": "LINEAR16",
+                "effectsProfileId": ["telephony-class-application"],
+                "pitch": 0,
+                "speakingRate": rate
+            },
+            "input": {
+                "text": text
+            },
+            "voice": {
+                "languageCode": locale,
+                "name": voice
+            }
         }
-    }
 
-    r = requests.post(url, json=payload, headers=hheaders)
-    aJson = r.json()
-    audioContent = aJson['audioContent']
-    decoded_data = base64.b64decode(audioContent, ' /')
-    with open(fn, 'wb') as pcm:
-        pcm.write(decoded_data)
+        response = requests.post(self.url, json=payload, headers=headers)
+        audio_json = response.json()
+        audio_content = audio_json['audioContent']
+        decoded_data = base64.b64decode(audio_content, ' /')
 
+        with open(filename, 'wb') as pcm:
+            pcm.write(decoded_data)
 
-vfile = open(args.file, "r")
-for line in vfile:
+    def process_iva_line(self, line: str) -> None:
+        """
+        Process an IVA (Interactive Voice Assistant) line.
 
-    if ignore is True:
-        if line.startswith('<ringback>'):
-            ignore = False
-            finalAudio = ' Audio/ringback.wav '
-    else:
-        if line.startswith('<hangup>'):
-            ignore = True
+        Args:
+            line: The line containing IVA dialogue
+        """
+        ivr = line.split(':', 1)
+        print(line)
+        text = ivr[1]
+        filename = str(self.fnum) + '.wav'
+
+        self.text_to_wav(self.va_voice, 1, self.va_locale, text, filename)
+
+        # Sleep to allow audio file to close
+        time.sleep(1)
+
+        # Play the audio
+        os.system(self.play_path + filename)
+        self.final_audio += filename + ' '
+        self.fnum += 1
+
+    def process_caller_line(self, line: str, record_mode: bool) -> None:
+        """
+        Process a Caller line (either record from microphone or generate with TTS).
+
+        Args:
+            line: The line containing caller dialogue
+            record_mode: If True, record from microphone; if False, use TTS
+        """
+        caller = line.split(':', 2)
+        print(line)
+        text = caller[2]
+        filename = str(self.fnum) + '.wav'
+
+        if record_mode:
+            print("Speak now")
+            # Record audio from microphone
+            duration_seconds = int(caller[1])
+            numsamples = duration_seconds * 24000
+            myrecording = sd.rec(numsamples, samplerate=24000, channels=1)
+            sd.wait()
+
+            # Write to temporary file and process with sox
+            sf.write('tmp.wav', myrecording, 24000)
+            os.system(self.sox_path + 'tmp.wav ' + filename + ' ')
         else:
-            if line.startswith('<backend>'):
-                finalAudio += 'Audio/backend.wav '
-            elif line.startswith('<sendmail>'):
-                finalAudio += 'Audio/swoosh.wav '
-            elif line.startswith('<transfer>'):
-                finalAudio += 'Audio/ringback.wav '
-            elif line.startswith('<text>'):
-                finalAudio += 'Audio/text-received.wav '
-            elif line.startswith('IVA'):
-                ivr = line.split(':', 1)
-                print(line)
-                text = ivr[1]
-                # ssml = '<speak version="1.0" xmlns="https://www.w3.org/2001/10/synthesis" xml:lang="en-US">' + text + '</speak>'
-                ssml = text
-                fn = str(fnum) + '.wav'
+            # Generate using TTS
+            self.text_to_wav(self.caller_voice, 1, self.caller_locale, text, filename)
 
-                text_to_wav(VA_VOICE, 1, VA_LOCALE, ssml, fn)
+        self.final_audio += filename + ' '
+        self.fnum += 1
 
-                # Try sleeping to see if the audio file just needs some time to close
-                time.sleep(1)
+    def process_special_tag(self, line: str) -> None:
+        """
+        Process special audio tags (backend, sendmail, transfer, text).
 
-                os.system(PlayURL + fn)
-                finalAudio += fn + ' '
-                fnum = fnum + 1
-            elif line.startswith('Caller'):
-                caller = line.split(':', 2)
-                print(line)
-                text = caller[2]
-                fn = str(fnum) + '.wav'
-                # Determine if the caller should be recorded with the microphone or generated with TTS
-                if args.record is not None:
-                    print("Speak now")
-                    # Record
-                    # command = RecURL + '--norm -b 16 -r 16000 ' + fn + ' silence -l 1 2 1% 1 3.0 1% '
-                    # print(command)
-                    # os.system(command)
-                    # Record for 10 seconds
-                    numsamples = int(caller[1]) * 24000
-                    myrecording = sd.rec(numsamples, samplerate=24000, channels=1)
-                    sd.wait()
+        Args:
+            line: The line containing the special tag
+        """
+        if line.startswith('<backend>'):
+            self.final_audio += 'Audio/backend.wav '
+        elif line.startswith('<sendmail>'):
+            self.final_audio += 'Audio/swoosh.wav '
+        elif line.startswith('<transfer>'):
+            self.final_audio += 'Audio/ringback.wav '
+        elif line.startswith('<text>'):
+            self.final_audio += 'Audio/text-received.wav '
 
-                    sf.write('tmp.wav', myrecording, 24000)
-                    os.system(SoxURL + 'tmp.wav ' + fn + ' ')
-                    # os.system(SoxURL + 'tmp.wav ' + fn + ' echo 0.8 0.88 6 0.4 bandpass 1250 1500')
-                    # os.system(SoxURL + 'tmpn.wav -p synth whitenoise vol 0.005 | ' + SoxURL + "-m " + 'tmpn.wav - ' + fn)
+    def process_dialog_file(self, filepath: str, record_mode: bool = False) -> str:
+        """
+        Process a dialog script file and generate audio.
 
+        Args:
+            filepath: Path to the dialog script file
+            record_mode: If True, record caller audio from microphone
 
+        Returns:
+            Path to the final generated audio file (vc.wav)
+        """
+        # Reset state
+        self.ignore = True
+        self.fnum = 1
+        self.final_audio = ''
+
+        with open(filepath, 'r') as vfile:
+            for line in vfile:
+                if self.ignore:
+                    if line.startswith('<ringback>'):
+                        self.ignore = False
+                        self.final_audio = ' Audio/ringback.wav '
                 else:
-                    # ssml = '<speak version="1.0" xmlns="https://www.w3.org/2001/10/synthesis" xml:lang="en-US">' + '<voice name="en-US-ChristopherNeural">' + text + '</voice>' + '</speak>'
-                    ssml = text
+                    if line.startswith('<hangup>'):
+                        self.ignore = True
+                    else:
+                        if line.startswith('<backend>') or line.startswith('<sendmail>') or \
+                           line.startswith('<transfer>') or line.startswith('<text>'):
+                            self.process_special_tag(line)
+                        elif line.startswith('IVA'):
+                            self.process_iva_line(line)
+                        elif line.startswith('Caller'):
+                            self.process_caller_line(line, record_mode)
 
-                    # audio_config = AudioOutputConfig(filename=fn)
+        # Concatenate all audio files into final output
+        output_file = 'vc.wav'
+        os.system(self.sox_path + self.final_audio + ' ' + output_file)
 
-                    # synthesizer = SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
-                    # synthesizer.speak_text_async(ssml)
-                    text_to_wav(CALLER_VOICE, 1, CALLER_LOCALE, ssml, fn)
+        return output_file
 
-                finalAudio += fn + ' '
-                fnum = fnum + 1
+    def generate(self, filepath: str, record_mode: bool = False) -> str:
+        """
+        Generate a vision clip from a dialog script file.
 
-os.system(SoxURL + finalAudio + ' vc.wav')
-vfile.close()
+        Args:
+            filepath: Path to the dialog script file
+            record_mode: If True, record caller audio from microphone
+
+        Returns:
+            Path to the final generated audio file
+        """
+        return self.process_dialog_file(filepath, record_mode)
+
+
+def main():
+    """Main entry point for command-line execution."""
+    parser = argparse.ArgumentParser(
+        prog="GoogleGenerateVC.py",
+        description="Generate vision clip audio from dialog scripts"
+    )
+
+    parser.add_argument("--file", metavar="<path>", help="Path to Vision Clip File", required=True)
+    parser.add_argument("--record", metavar="1", help="Record customer side using microphone rather than TTS")
+
+    args = parser.parse_args()
+
+    # Create generator instance
+    try:
+        generator = VisionClipGenerator()
+    except ValueError as e:
+        print(f"Error: {e}")
+        print("Please set GOOGLE_API_KEY environment variable")
+        return 1
+
+    # Process the dialog file
+    record_mode = args.record is not None
+    output_file = generator.generate(args.file, record_mode)
+
+    print(f"\nGenerated vision clip: {output_file}")
+    return 0
+
+
+if __name__ == '__main__':
+    exit(main())

@@ -103,8 +103,34 @@ All tests use mocking to avoid external dependencies and actual API calls.
 
 ### Key Components
 
-**GoogleGenerateVC.py** (primary script):
-- TTS via Google API: `text_to_wav()` function handles API calls
+**GoogleGenerateVC.py** (primary script) - Class-based architecture:
+
+The application is built around the `VisionClipGenerator` class:
+
+```python
+from GoogleGenerateVC import VisionClipGenerator
+
+# Create generator instance (reads GOOGLE_API_KEY from environment)
+generator = VisionClipGenerator()
+
+# Or pass API key explicitly
+generator = VisionClipGenerator(api_key='your-api-key')
+
+# Generate audio from dialog file
+output_file = generator.generate('dialogs/confirmation.txt', record_mode=True)
+```
+
+**VisionClipGenerator Class Methods**:
+- `__init__(api_key)`: Initialize with API configuration and voice settings
+- `text_to_wav(voice, rate, locale, text, filename)`: Convert text to WAV using Google TTS API
+- `process_iva_line(line)`: Process IVA dialogue lines (TTS + playback)
+- `process_caller_line(line, record_mode)`: Process Caller lines (record or TTS)
+- `process_special_tag(line)`: Handle special audio tags (backend, sendmail, etc.)
+- `process_dialog_file(filepath, record_mode)`: Main processing logic for dialog scripts
+- `generate(filepath, record_mode)`: Public API for generating vision clips
+
+**Technologies**:
+- TTS via Google API: `text_to_wav()` method handles API calls
 - Audio playback: Uses `afplay` (macOS)
 - Recording: Uses `sounddevice` library for mic input
 - Audio processing: Uses sox for format conversion and concatenation
@@ -145,8 +171,9 @@ Caller:N: [What user should say, with N-second recording duration]
 
 ## Important Notes
 
-- **Recording mode** (`--record 1`) is the only currently supported mode
-- TTS-only mode (no `--record` flag) is not fully implemented in current codebase
+- **Recording mode** (`--record 1`) records caller audio via microphone
+- **TTS-only mode** (omit `--record` flag) generates both sides using TTS (now fully supported with class-based refactoring)
 - `GenerateVC.py` contains hardcoded Azure credentials and should not be used in production
 - Output file `vc.wav` is always created in the current working directory
 - The script uses `afplay` for audio playback, which is macOS-specific
+- The application uses a class-based architecture with the `VisionClipGenerator` class for better testability and maintainability

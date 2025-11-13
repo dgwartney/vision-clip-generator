@@ -81,6 +81,35 @@ The test suite includes:
 
 All tests use mocking to avoid external dependencies and actual API calls.
 
+## Class-Based Architecture
+
+The application uses a class-based architecture with the `VisionClipGenerator` class for better testability and maintainability.
+
+### Programmatic Usage
+
+You can also use the generator programmatically in your own Python code:
+
+```python
+from GoogleGenerateVC import VisionClipGenerator
+
+# Create generator instance (reads GOOGLE_API_KEY from environment)
+generator = VisionClipGenerator()
+
+# Or pass API key explicitly
+generator = VisionClipGenerator(api_key='your-api-key')
+
+# Generate audio from dialog file
+output_file = generator.generate('dialogs/confirmation.txt', record_mode=True)
+print(f"Generated: {output_file}")
+```
+
+### Main Class Methods
+
+- `__init__(api_key=None)`: Initialize with optional API key
+- `generate(filepath, record_mode=False)`: Main entry point to generate vision clips
+- `text_to_wav(voice, rate, locale, text, filename)`: Convert text to WAV
+- `process_dialog_file(filepath, record_mode)`: Process entire dialog script
+
 ## SOX
 
 ## How to Execute the Script
@@ -100,7 +129,13 @@ source .venv/bin/activate
 python GoogleGenerateVC.py --file ScriptName.txt --record 1
 ```
 
-**Note**: in the above there are two _- signs before "file" and "record". The script name is the name of the vision clip definition file (the script of the conversation). Without the record option the script is supposed to record both sides of the conversation in TTS, caller in one voice and the IVA in another. Currently I have not updated that code so it should fail, if for some reason we want to support this to make quick pro-types without re-recording every time I can update the script to support this. Currently we also would need to modify the python script to change the voice used in the demo.
+**Note**: The script name is the name of the vision clip definition file (the script of the conversation).
+
+**Modes**:
+- **With `--record 1`**: Records caller audio from microphone (interactive mode)
+- **Without `--record`**: Generates both IVA and caller audio using TTS (fully automated, useful for quick prototypes)
+
+The voices can be customized using environment variables (see Voice Configuration above).
 
 ## Operation
 After running the script it will iterate through the text file. When it hits an IVA line it will call the API to
