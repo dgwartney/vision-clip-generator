@@ -1,8 +1,8 @@
 <ringback>
 
-IVA: Good morning, you’ve reached Willow Creek Hospital. I’m the virtual assistant. How can I assist you today?
+IVA: Good morning, you’ve reached HarborPoint Diagnostics. I’m the virtual assistant. How can I assist you today?
 
-Caller:10: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what I need to do to get ready for it.
+Caller:18: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what I need to do to get ready for it and which location I pickeded?
 
 IVA: Sure thing! I can help with that. 
 
@@ -24,27 +24,13 @@ IVA: Perfect, I’ll get that updated for you.
 
 IVA: Now, just a reminder — since this is for bloodwork, you’ll need to fast for 8 hours. And as always bring a photo ID.
 
-IVA: Would you like me to text those instructions to you?
+IVA: Would you like me to text those instructions with our address and directions to you?
 
 Caller:5: Yes, that’d be great.
 
 <text-received>
 
-IVA: Great! I’ve sent your new appointment and prep details by text.
-
-IVA: Anything else I can do for you today?
-
-Caller:10: I am not sure where you are located?
-
-IVA: We’re located at 4820 Willowbend Drive, Riverview, OH 44128, right across from the Riverview Community Park.
-
-IVA: Would you like me to text that address and our directions to you?
-
-Caller:8: Sure, that would help a lot
-
-<text-received>
-
-IVA: All set — I’ve just sent the details to your phone.
+IVA: Great! I’ve sent your new appointment, prep details, along with our address and directions by text.
 
 IVA: Anything else I can do for you today?
 
