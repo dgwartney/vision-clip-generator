@@ -2,19 +2,19 @@
 
 IVA: Good morning, you’ve reached Willow Creek Hospital. I’m the virtual assistant. How can I assist you today?
 
-Caller:10: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what the instructions were to prepare for it.
+Caller:10: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what I need to do to get ready for it.
 
 IVA: Sure thing! I can help with that. 
 
 IVA: Let’s start by rescheduling your appointment — can I just confirm your date of birth first?
 
-Caller:3: 1/1/91
+Caller:8: 1/1/91
 
 IVA: Thanks, Sam. I’ve got your appointment here.
 
 IVA: What day would work better for you?
 
-Caller:5: Maybe Thursday instead?
+Caller:8: Maybe Thursday instead?
 
 IVA: I have a 10:30 AM slot or 2:45 PM on Thursday. Which one would you like?
 
