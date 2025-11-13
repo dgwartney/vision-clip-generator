@@ -2,10 +2,11 @@ Vision Clip 1: Internet not working
 Voice: Female
 Caller: Male, early 30’s.
 
-
 <ringback>
 
-Caller:6: I need to confirm my reservation for Kore Suites Hotel.
+IVA: Thanks for calling the Mesa Verde Resort and Casino
+
+Caller:6: I need to confirm my reservation.
 
 IVA: Do you happen to have the confirmation number?
 
@@ -19,7 +20,7 @@ IVA: Let me know when you are ready.
 
 Caller:3: Okay, I found it.
 
-IVA: Please give me the  confirmation number.
+IVA: Please give me the confirmation number.
 
 Caller:5: 9326572
 
