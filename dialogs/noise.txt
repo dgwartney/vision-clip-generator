@@ -1,0 +1,27 @@
+**Voice:** Female
+**Caller:** Male, mid 30’s.
+
+<ringback>
+
+IVA: Hi John, thanks for confirming your details. I understand you’d like to update your mailing address today, is that right?
+
+Caller:5: Yeah, that’s right.
+
+IVA: Great! Let’s get that updated for you. Could you please tell me your new street number and name?
+
+Caller:5: (muffled) Uh… it’s… static …thirteen oh seven… distortion
+
+IVA: I’m sorry, I didn’t quite catch that — could you repeat the street number and name for me?
+
+Caller:5: (muffled) static …thirteen oh seven Big… garbled audio
+
+IVA: Hmm, it’s still a little hard to make out — sounds like the connection’s acting up a bit.
+
+IVA: That’s okay though, John. How about I send you a quick text message to the number you’re calling from, so you can reply with your new address? That way we’ll make sure everything’s correct.
+
+Caller:3: Yeah, that works for me.
+
+IVA: Perfect! I’ll send that message right now. Just reply with your full address, and I’ll take care of the update for you. Thanks for your patience, John — talk to you soon!
+
+<backend>
+

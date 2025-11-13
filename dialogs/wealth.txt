@@ -1,0 +1,45 @@
+Vision Clip 1: Complex Booking
+Voice: Female
+Caller: Male, early 30’s.
+
+<ringback>
+
+IVA: Thanks for calling G Wealth Management. How can I help you today?
+
+Caller:6: Yeah, I need to get my 401k balance and update my address.
+
+IVA: Let's start by getting your account balance. I'll need to collect some information from you in order to access your account. Please tell me your account number.
+
+Caller:8: 867-530-90
+
+IVA: And the PIN associated with this account.
+
+Caller:5: 0127.
+
+IVA: Thanks for the information. Am I speaking with John?
+
+Caller:4: Yes, I'm John.
+
+IVA: Your account balance is $750,000. Is this the information you were looking for?
+
+Caller:7: Yeah, that's what I needed.
+
+IVA: Let's get your address updated. I have your current address as 123 Hunter Lane, Curtin, Texas. Is this the address that you want to update?
+
+Caller:5: Yes, that's the one.
+
+IVA: Please tell me the address that you want to associate with your account.
+
+Caller:12: Yeah, my new address is 1307 Big Springs Road, Fort Worth, Texas, 76114.
+
+IVA: I collected 1307 Big Springs Road, Fort Worth, Texas, 76114. Is that correct? 
+
+Caller:8: Yes, that's correct.
+
+IVA: Great, thanks for the information. I have updated your address. Is there anything else that I can assist with?
+
+Caller:8: No, thanks. That's all I needed.
+
+IVA: Thanks for calling G Wealth Management. Have a great day. Goodbye.
+
+<backend>

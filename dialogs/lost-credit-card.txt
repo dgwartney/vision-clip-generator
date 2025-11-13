@@ -1,0 +1,12 @@
+Caller:10: (slightly panicked) Hi, um—hi, I think my credit card’s been stolen. I just got to a coffee shop and it’s not in my wallet.
+
+IVA: I’m sorry to hear that. Let’s get that card locked right away. Can I have the last four digits of your SSN to confirm your account? Or maybe ask some other question??
+
+Caller:5: Yes, it’s 2983.
+
+IVA: i'm sorry, I didn't quite catch that. I have 29. What else?
+
+Caller:3: 83.
+
+IVA: I can't quite hear you but no problem let me text you at the phone number you're calling from to verify your identity and blahblah de-activate your card and send you a new one.
+
