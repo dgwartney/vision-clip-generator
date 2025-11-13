@@ -1,14 +1,16 @@
 <ringback>
+IVA: Hi, you’ve reached the Card Services virtual assistant. How can I help you today?
 
 Caller:10: (slightly panicked) Hi, um—hi, I think my credit card’s been stolen. I just got to a coffee shop and it’s not in my wallet.
 
-IVA: I’m sorry to hear that. Let’s get that card locked right away. Can I have the last four digits of your SSN to confirm your account? Or maybe ask some other question??
+IVA: I’m really sorry to hear that. Let’s get your card locked right away. For security, I’ll need to confirm your identity first. Can you please tell me your account PIN?
 
-Caller:5: Yes, it’s 2983.
+Caller:8: (raising voice slightly) Yeah—it’s 2-9-8-3.
 
-IVA: i'm sorry, I didn't quite catch that. I have 29. What else?
+IVA: I caught “2 9”… but could you repeat the last part? There’s a lot of background noise.
 
-Caller:3: 83.
+Caller:5: (louder) 8-3!
 
-IVA: I can't quite hear you but no problem let me text you at the phone number you're calling from to verify your identity and blahblah de-activate your card and send you a new one.
+IVA: I’m still having trouble hearing clearly—looks like there’s too much noise around you. No problem, though. I’ll send a secure text message to the number you’re calling from. Please verify your identity there, and we’ll lock your card and send a replacement right away.
 
+Caller:5: Okay, thank you.
