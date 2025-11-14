@@ -90,7 +90,7 @@ The application uses a class-based architecture with the `VisionClipGenerator` c
 You can also use the generator programmatically in your own Python code:
 
 ```python
-from GoogleGenerateVC import VisionClipGenerator
+from main import VisionClipGenerator
 
 # Create generator instance (reads GOOGLE_API_KEY from environment)
 generator = VisionClipGenerator()
@@ -114,22 +114,40 @@ print(f"Generated: {output_file}")
 
 ## How to Execute the Script
 
-From the command line, use one of the following methods:
+The application provides multiple execution methods for different use cases:
 
-### Option 1: Using uv run (recommended)
+### Method 1: Console Command (After Installation)
 
+First, sync the environment to install the package:
 ```shell
-uv run python GoogleGenerateVC.py --file ScriptName.txt --record 1
+uv sync
 ```
 
-### Option 2: Activate virtual environment first
-
+Then run using the `vision-clip` command:
 ```shell
-source .venv/bin/activate
-python GoogleGenerateVC.py --file ScriptName.txt --record 1
+vision-clip --file dialogs/confirmation.txt --record 1
 ```
 
-**Note**: The script name is the name of the vision clip definition file (the script of the conversation).
+### Method 2: Using uv run (No Installation Required - Recommended)
+
+```shell
+uv run vision-clip --file dialogs/confirmation.txt --record 1
+```
+
+### Method 3: Direct Script Execution (Legacy Compatibility)
+
+```shell
+python main.py --file dialogs/confirmation.txt --record 1
+```
+
+**Note**: Choose based on your workflow:
+- **Method 1** (console command): Best after installation for production use
+- **Method 2** (uv run): Best for development without explicit installation
+- **Method 3** (direct): Simple and direct, maintains backward compatibility
+
+**Arguments**:
+- `--file <path>`: Path to vision clip dialog script file (required)
+- `--record 1`: Record caller audio from microphone (interactive mode)
 
 **Modes**:
 - **With `--record 1`**: Records caller audio from microphone (interactive mode)

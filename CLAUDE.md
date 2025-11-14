@@ -97,19 +97,35 @@ Environment variables for voice configuration (provider-specific defaults):
 
 ## Running the Application
 
-### Execute a Vision Clip
-```bash
-# Using uv run (recommended)
-uv run python GoogleGenerateVC.py --file dialogs/confirmation.txt --record 1
+The application provides multiple execution methods for different use cases:
 
-# Or activate the virtual environment first
-source .venv/bin/activate
-python GoogleGenerateVC.py --file dialogs/confirmation.txt --record 1
+### Method 1: Console Command (After Installation)
+
+First, sync the environment to install the package:
+```bash
+uv sync
+```
+
+Then run using the `vision-clip` command:
+```bash
+vision-clip --file dialogs/confirmation.txt --record 1
+```
+
+### Method 2: Using uv run (No Installation Required - Recommended)
+
+```bash
+uv run vision-clip --file dialogs/confirmation.txt --record 1
+```
+
+### Method 3: Direct Script Execution (Legacy Compatibility)
+
+```bash
+python main.py --file dialogs/confirmation.txt --record 1
 ```
 
 **Arguments**:
 - `--file`: Path to vision clip script file (required)
-- `--record`: Set to `1` to record caller audio via microphone; omit to use TTS for both sides (currently unsupported)
+- `--record`: Set to `1` to record caller audio via microphone; omit to use TTS for both sides
 
 ### Clean Generated Audio Files
 ```bash
@@ -150,12 +166,12 @@ All tests use mocking to avoid external dependencies and actual API calls.
 
 ### Key Components
 
-**GoogleGenerateVC.py** (primary script) - Class-based architecture:
+**main.py** (primary script) - Class-based architecture:
 
 The application is built around the `VisionClipGenerator` class:
 
 ```python
-from GoogleGenerateVC import VisionClipGenerator
+from main import VisionClipGenerator
 
 # Create generator instance (reads GOOGLE_API_KEY from environment)
 generator = VisionClipGenerator()
@@ -240,7 +256,7 @@ The application now uses a modular TTS abstraction layer (`tts/` module) that en
 
 **Basic usage with default provider**:
 ```python
-from GoogleGenerateVC import VisionClipGenerator
+from main import VisionClipGenerator
 
 # Uses Google TTS by default (from GOOGLE_API_KEY env var)
 generator = VisionClipGenerator()
