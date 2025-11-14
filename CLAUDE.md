@@ -160,7 +160,7 @@ The project includes comprehensive unit tests in the `tests/` directory covering
 - Line parsing logic (IVA, Caller, special tags)
 - Dialog file processing
 - Environment variable handling
-- Audio file operations and sox command construction
+- Audio file operations and concatenation
 - Recording duration calculations
 - Integration tests with temporary files
 
@@ -176,7 +176,7 @@ All tests use mocking to avoid external dependencies and actual API calls.
    - `Caller:N:` lines → Record from mic for N seconds (when `--record` flag present)
    - Special tags (`<backend>`, `<sendmail>`, `<transfer>`, `<text>`) → Insert pre-recorded audio from `audio/` directory
 4. **Temporary file organization**: Intermediate audio stored in `.temp/` directory with sequential naming
-5. **Audio stitching**: Uses sox to concatenate all segments into output file (default: `vc.wav`)
+5. **Audio stitching**: Uses pydub to concatenate all segments into output file (default: `vc.wav`)
 6. **Cleanup**: Automatically removes `.temp/` directory after successful generation
 
 ### Key Components
@@ -209,9 +209,9 @@ output_file = generator.generate('dialogs/confirmation.txt', record_mode=True)
 
 **Technologies**:
 - **TTS Abstraction Layer**: Flexible provider system supporting Google, Azure, ElevenLabs, and AWS
-- Audio playback: Uses `afplay` (macOS)
-- Recording: Uses `sounddevice` library for mic input
-- Audio processing: Uses sox for format conversion and concatenation
+- **Audio playback**: Uses `sounddevice` for cross-platform playback
+- **Recording**: Uses `sounddevice` library for mic input
+- **Audio processing**: Uses `pydub` for audio concatenation and `soundfile` for WAV file I/O
 
 ### TTS Abstraction Layer
 
@@ -393,14 +393,14 @@ Caller:N: [What user should say, with N-second recording duration]
 
 **Final output**: Specified by `--output` argument (default: `vc.wav`)
 - Contains concatenated audio of the entire conversation
-- All temporary files stitched together in sequential order using sox
+- All temporary files stitched together in sequential order using pydub
 
 ### Dependencies
 
 **Core Dependencies** (always required):
-- **sox-14.4.2/**: Local sox installation for audio manipulation
-- **sounddevice**: Python audio recording interface
-- **soundfile**: Audio file I/O
+- **sounddevice**: Python audio recording and playback interface (cross-platform)
+- **soundfile**: Audio file I/O (WAV, FLAC, OGG support)
+- **pydub**: Audio manipulation and concatenation
 - **requests**: HTTP client for API calls (used by Google and ElevenLabs providers)
 - **protobuf**: Protocol buffers (used by Google API)
 - **pyyaml**: YAML configuration file support
@@ -420,13 +420,13 @@ Caller:N: [What user should say, with N-second recording duration]
 ## Important Notes
 
 - **TTS Abstraction Layer**: The application now supports multiple TTS providers (Google, Azure, ElevenLabs, AWS) through a unified interface
+- **Cross-platform**: Uses Python packages (`sounddevice`, `pydub`) for audio playback and processing, works on Windows, macOS, and Linux
 - **Recording mode** (`--record`) records caller audio via microphone
 - **TTS-only mode** (omit `--record` flag) generates both sides using TTS (fully supported)
 - **Backward compatibility**: Existing scripts using `VisionClipGenerator(api_key='...')` continue to work with Google TTS
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider
 - **Output customization**: Use `--output` or `-o` to specify output file path (default: `vc.wav` in current directory)
 - **Temporary files**: Intermediate audio files are stored in `.temp/` directory with sequential naming (`001_va.wav`, `002_caller.wav`, etc.) and automatically cleaned up
-- The script uses `afplay` for audio playback, which is macOS-specific
 - The application uses a class-based architecture with comprehensive test coverage for maintainability
 
 ## Migration from Legacy GenerateVC.py

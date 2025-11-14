@@ -24,7 +24,7 @@ class TestVisionClipGeneratorInit:
         assert generator.tts_provider is not None
         assert generator.tts_provider.name == 'google'
         assert generator.tts_provider.api_key == 'test_api_key'
-        assert generator.sox_path == "sox-14.4.2/sox "
+        assert generator.temp_dir == ".temp"
         assert generator.va_locale == 'en-US'
         assert generator.va_voice == 'en-US-Journey-O'
 
@@ -131,8 +131,8 @@ class TestProcessIvaLine:
     def test_process_iva_line(self, generator, mocker):
         """Test processing of IVA line"""
         mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
         mocker.patch('time.sleep')
-        mocker.patch('os.system')
 
         generator.fnum = 5
         generator.final_audio = 'existing.wav '
@@ -144,6 +144,9 @@ class TestProcessIvaLine:
         generator.text_to_wav.assert_called_once_with(
             generator.va_voice, 1, generator.va_locale, ' Hello, how can I help you?', '.temp/005_va.wav'
         )
+
+        # Verify play_audio was called
+        generator.play_audio.assert_called_once_with('.temp/005_va.wav')
 
         # Verify state was updated
         assert generator.fnum == 6
@@ -181,7 +184,6 @@ class TestProcessCallerLine:
         mock_rec = mocker.patch('sounddevice.rec', return_value=Mock())
         mocker.patch('sounddevice.wait')
         mocker.patch('soundfile.write')
-        mocker.patch('os.system')
 
         generator.fnum = 2
         line = 'Caller:7: Test message'
@@ -265,8 +267,9 @@ IVA: Let me help you with that.
     def test_process_dialog_file(self, generator, sample_dialog, mocker):
         """Test processing a complete dialog file"""
         mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch.object(generator, 'concatenate_audio_files')
         mocker.patch('time.sleep')
-        mocker.patch('os.system')
 
         output_file = generator.process_dialog_file(sample_dialog, record_mode=False)
 
@@ -276,6 +279,9 @@ IVA: Let me help you with that.
         # Verify text_to_wav was called for both IVA lines and Caller line
         assert generator.text_to_wav.call_count == 3  # 2 IVA lines + 1 Caller line
 
+        # Verify concatenate_audio_files was called
+        generator.concatenate_audio_files.assert_called_once()
+
         # Verify final audio includes all expected files
         assert 'audio/ringback.wav' in generator.final_audio
         assert 'audio/backend.wav' in generator.final_audio
@@ -283,8 +289,9 @@ IVA: Let me help you with that.
     def test_process_dialog_file_resets_state(self, generator, sample_dialog, mocker):
         """Test that process_dialog_file resets state variables"""
         mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch.object(generator, 'concatenate_audio_files')
         mocker.patch('time.sleep')
-        mocker.patch('os.system')
 
         # Set initial state
         generator.fnum = 10
@@ -410,16 +417,51 @@ class TestAudioProcessing:
         assert 'audio/backend.wav' in finalAudio
         assert '3.wav' in finalAudio
 
-    def test_sox_command_construction(self):
-        """Test sox command string construction"""
-        SoxURL = "sox-14.4.2/sox "
-        finalAudio = 'audio/ringback.wav 1.wav 2.wav '
-        sox_command = SoxURL + finalAudio + ' vc.wav'
+    def test_audio_concatenation(self, mocker):
+        """Test audio concatenation using pydub"""
+        # Mock pydub components with proper addition support
+        mock_segment = mocker.patch('main.AudioSegment')
+        mock_combined = Mock()
+        mock_segment.empty.return_value = mock_combined
 
-        assert sox_command.startswith('sox-14.4.2/sox')
-        assert sox_command.endswith('vc.wav')
-        assert '1.wav' in sox_command
-        assert '2.wav' in sox_command
+        # Mock from_wav to return objects that support addition
+        mock_audio = Mock()
+        mock_combined.__add__ = Mock(return_value=mock_combined)
+        mock_segment.from_wav.return_value = mock_audio
+
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator()
+
+        file_list = 'audio/ringback.wav file1.wav file2.wav'
+        generator.concatenate_audio_files(file_list, 'output.wav')
+
+        # Verify AudioSegment.from_wav was called for each file
+        assert mock_segment.from_wav.call_count == 3
+        # Verify export was called on the combined audio
+        mock_combined.export.assert_called_once_with('output.wav', format='wav')
+
+
+class TestPlayAudio:
+    """Test the play_audio method"""
+
+    def test_play_audio(self, mocker):
+        """Test audio playback using sounddevice"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator()
+
+        # Mock soundfile and sounddevice
+        mock_sf_read = mocker.patch('soundfile.read', return_value=(Mock(), 24000))
+        mock_sd_play = mocker.patch('sounddevice.play')
+        mock_sd_wait = mocker.patch('sounddevice.wait')
+
+        generator.play_audio('test.wav')
+
+        # Verify soundfile read was called
+        mock_sf_read.assert_called_once_with('test.wav')
+        # Verify sounddevice play was called
+        mock_sd_play.assert_called_once()
+        # Verify sounddevice wait was called (blocking)
+        mock_sd_wait.assert_called_once()
 
 
 class TestRecordingCalculations:

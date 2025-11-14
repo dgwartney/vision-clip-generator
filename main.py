@@ -7,6 +7,7 @@ import shutil
 import sounddevice as sd
 import soundfile as sf
 import time
+from pydub import AudioSegment
 
 # Import TTS abstraction layer
 from tts import create_tts_provider, TTSProvider
@@ -58,9 +59,6 @@ class VisionClipGenerator:
             generator = VisionClipGenerator()  # Uses TTS_PROVIDER and provider-specific env vars
         """
         # Audio processing paths
-        self.sox_path = "sox-14.4.2/sox "
-        self.rec_path = "sox-14.4.2/rec "
-        self.play_path = "afplay "
         self.temp_dir = ".temp"
 
         # Processing state
@@ -110,6 +108,34 @@ class VisionClipGenerator:
             output_file=filename
         )
 
+    def play_audio(self, filename: str) -> None:
+        """
+        Play audio file and wait for completion using sounddevice.
+
+        Args:
+            filename: Path to audio file to play
+        """
+        data, samplerate = sf.read(filename)
+        sd.play(data, samplerate)
+        sd.wait()  # Block until playback finishes
+
+    def concatenate_audio_files(self, file_list: str, output_file: str) -> None:
+        """
+        Concatenate multiple audio files into a single output file using pydub.
+
+        Args:
+            file_list: Space-separated string of audio file paths
+            output_file: Path for the concatenated output file
+        """
+        combined = AudioSegment.empty()
+
+        for audio_file in file_list.split():
+            audio_file = audio_file.strip()
+            if audio_file:
+                combined += AudioSegment.from_wav(audio_file)
+
+        combined.export(output_file, format="wav")
+
     def process_iva_line(self, line: str) -> None:
         """
         Process an IVA (Interactive Voice Assistant) line.
@@ -127,8 +153,8 @@ class VisionClipGenerator:
         # Sleep to allow audio file to close
         time.sleep(1)
 
-        # Play the audio
-        os.system(self.play_path + filename)
+        # Play the audio using sounddevice
+        self.play_audio(filename)
         self.final_audio += filename + ' '
         self.fnum += 1
 
@@ -153,10 +179,8 @@ class VisionClipGenerator:
             myrecording = sd.rec(numsamples, samplerate=24000, channels=1)
             sd.wait()
 
-            # Write to temporary file and process with sox
-            tmp_file = os.path.join(self.temp_dir, 'tmp.wav')
-            sf.write(tmp_file, myrecording, 24000)
-            os.system(self.sox_path + tmp_file + ' ' + filename + ' ')
+            # Write to file (soundfile already writes proper WAV format)
+            sf.write(filename, myrecording, 24000)
         else:
             # Generate using TTS
             self.text_to_wav(self.caller_voice, 1, self.caller_locale, text, filename)
@@ -218,8 +242,8 @@ class VisionClipGenerator:
                         elif line.startswith('Caller'):
                             self.process_caller_line(line, record_mode)
 
-        # Concatenate all audio files into final output
-        os.system(self.sox_path + self.final_audio + ' ' + output_file)
+        # Concatenate all audio files into final output using pydub
+        self.concatenate_audio_files(self.final_audio, output_file)
 
         # Clean up temp directory
         try:

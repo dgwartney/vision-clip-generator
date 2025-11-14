@@ -131,8 +131,6 @@ print(f"Generated: {output_file}")
 - `text_to_wav(voice, rate, locale, text, filename)`: Convert text to WAV
 - `process_dialog_file(filepath, record_mode)`: Process entire dialog script
 
-## SOX
-
 ## How to Execute the Script
 
 The application provides multiple execution methods for different use cases:
