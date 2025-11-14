@@ -209,25 +209,25 @@ class TestProcessSpecialTag:
         """Test processing <backend> tag"""
         generator.final_audio = 'existing.wav '
         generator.process_special_tag('<backend>')
-        assert 'Audio/backend.wav' in generator.final_audio
+        assert 'audio/backend.wav' in generator.final_audio
 
     def test_sendmail_tag(self, generator):
         """Test processing <sendmail> tag"""
         generator.final_audio = 'existing.wav '
         generator.process_special_tag('<sendmail>')
-        assert 'Audio/swoosh.wav' in generator.final_audio
+        assert 'audio/swoosh.wav' in generator.final_audio
 
     def test_transfer_tag(self, generator):
         """Test processing <transfer> tag"""
         generator.final_audio = 'existing.wav '
         generator.process_special_tag('<transfer>')
-        assert 'Audio/ringback.wav' in generator.final_audio
+        assert 'audio/ringback.wav' in generator.final_audio
 
     def test_text_tag(self, generator):
         """Test processing <text> tag"""
         generator.final_audio = 'existing.wav '
         generator.process_special_tag('<text>')
-        assert 'Audio/text-received.wav' in generator.final_audio
+        assert 'audio/text-received.wav' in generator.final_audio
 
 
 class TestProcessDialogFile:
@@ -277,8 +277,8 @@ IVA: Let me help you with that.
         assert generator.text_to_wav.call_count == 3  # 2 IVA lines + 1 Caller line
 
         # Verify final audio includes all expected files
-        assert 'Audio/ringback.wav' in generator.final_audio
-        assert 'Audio/backend.wav' in generator.final_audio
+        assert 'audio/ringback.wav' in generator.final_audio
+        assert 'audio/backend.wav' in generator.final_audio
 
     def test_process_dialog_file_resets_state(self, generator, sample_dialog, mocker):
         """Test that process_dialog_file resets state variables"""
@@ -397,23 +397,23 @@ class TestAudioProcessing:
 
     def test_final_audio_concatenation(self):
         """Test building the final audio file list"""
-        finalAudio = ' Audio/ringback.wav '
+        finalAudio = ' audio/ringback.wav '
         finalAudio += '1.wav '
         finalAudio += '2.wav '
-        finalAudio += 'Audio/backend.wav '
+        finalAudio += 'audio/backend.wav '
         finalAudio += '3.wav '
 
         # Verify the string contains all expected files
-        assert 'Audio/ringback.wav' in finalAudio
+        assert 'audio/ringback.wav' in finalAudio
         assert '1.wav' in finalAudio
         assert '2.wav' in finalAudio
-        assert 'Audio/backend.wav' in finalAudio
+        assert 'audio/backend.wav' in finalAudio
         assert '3.wav' in finalAudio
 
     def test_sox_command_construction(self):
         """Test sox command string construction"""
         SoxURL = "sox-14.4.2/sox "
-        finalAudio = 'Audio/ringback.wav 1.wav 2.wav '
+        finalAudio = 'audio/ringback.wav 1.wav 2.wav '
         sox_command = SoxURL + finalAudio + ' vc.wav'
 
         assert sox_command.startswith('sox-14.4.2/sox')

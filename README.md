@@ -25,6 +25,27 @@ This will:
 - Install all required dependencies (protobuf, requests, sounddevice, soundfile)
 - Lock dependency versions in `uv.lock`
 
+### Optional TTS Provider Dependencies
+
+By default, the application uses **Google Cloud TTS**. To use other providers, install the optional dependencies:
+
+```shell
+# For Azure Cognitive Services TTS
+uv sync --extra azure
+
+# For AWS Polly TTS
+uv sync --extra aws
+
+# For all TTS providers
+uv sync --extra all-providers
+```
+
+**Supported TTS Providers:**
+- **Google Cloud TTS** (default) - No additional dependencies needed
+- **Azure Cognitive Services** - Requires `--extra azure`
+- **AWS Polly** - Requires `--extra aws`
+- **ElevenLabs** - No additional dependencies needed (uses REST API)
+
 ## Configure API Key
 
 Create a file name `env.sh` and add the following to the file:

@@ -161,7 +161,7 @@ All tests use mocking to avoid external dependencies and actual API calls.
 3. **Line-by-line processing**:
    - `IVA:` lines → Generate TTS, play through speakers, add to final audio
    - `Caller:N:` lines → Record from mic for N seconds (when `--record` flag present)
-   - Special tags (`<backend>`, `<sendmail>`, `<transfer>`, `<text>`) → Insert pre-recorded audio from `Audio/` directory
+   - Special tags (`<backend>`, `<sendmail>`, `<transfer>`, `<text>`) → Insert pre-recorded audio from `audio/` directory
 4. **Audio stitching**: Uses sox to concatenate all segments into `vc.wav`
 
 ### Key Components
@@ -360,7 +360,7 @@ Caller:N: [What user should say, with N-second recording duration]
 ```
 
 ### Audio Files
-- Pre-recorded audio effects stored in `Audio/` directory:
+- Pre-recorded audio effects stored in `audio/` directory:
   - `ringback.wav`: Phone ringing
   - `backend.wav`: Backend processing sound
   - `swoosh.wav`: Email sent sound

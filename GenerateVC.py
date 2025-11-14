@@ -80,19 +80,19 @@ for line in vfile:
   if ignore is True:
     if line.startswith('<ringback>'):
       ignore = False
-      finalAudio = ' Audio/ringback.wav '
+      finalAudio = ' audio/ringback.wav '
   else:
     if line.startswith('<hangup>'):
       ignore = True
     else:
       if line.startswith('<backend>'):
-        finalAudio += 'Audio/backend.wav '
+        finalAudio += 'audio/backend.wav '
       elif line.startswith('<sendmail>'):
-        finalAudio += 'Audio/swoosh.wav '
+        finalAudio += 'audio/swoosh.wav '
       elif line.startswith('<transfer>'):
-        finalAudio += 'Audio/ringback.wav '
+        finalAudio += 'audio/ringback.wav '
       elif line.startswith('<text>'):
-        finalAudio += 'Audio/text-received.wav '
+        finalAudio += 'audio/text-received.wav '
       elif line.startswith('IVA'):
         ivr = line.split(':',1)
         print(line)

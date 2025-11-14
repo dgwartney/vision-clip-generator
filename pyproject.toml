@@ -18,6 +18,18 @@ dev = [
     "pytest-mock>=3.12.0",
     "pytest-cov>=4.1.0",
 ]
+# Optional TTS provider dependencies
+azure = [
+    "azure-cognitiveservices-speech>=1.31.0",
+]
+aws = [
+    "boto3>=1.28.0",
+]
+# Install all TTS providers
+all-providers = [
+    "azure-cognitiveservices-speech>=1.31.0",
+    "boto3>=1.28.0",
+]
 
 [project.scripts]
 vision-clip = "main:main"
@@ -28,7 +40,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
-include = ["*.py", "tts/**/*.py", "Audio/*", "dialogs/*"]
+include = ["*.py", "tts/**/*.py", "audio/*", "dialogs/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -169,13 +169,13 @@ class VisionClipGenerator:
             line: The line containing the special tag
         """
         if line.startswith('<backend>'):
-            self.final_audio += 'Audio/backend.wav '
+            self.final_audio += 'audio/backend.wav '
         elif line.startswith('<sendmail>'):
-            self.final_audio += 'Audio/swoosh.wav '
+            self.final_audio += 'audio/swoosh.wav '
         elif line.startswith('<transfer>'):
-            self.final_audio += 'Audio/ringback.wav '
+            self.final_audio += 'audio/ringback.wav '
         elif line.startswith('<text>'):
-            self.final_audio += 'Audio/text-received.wav '
+            self.final_audio += 'audio/text-received.wav '
 
     def process_dialog_file(self, filepath: str, record_mode: bool = False) -> str:
         """
@@ -198,7 +198,7 @@ class VisionClipGenerator:
                 if self.ignore:
                     if line.startswith('<ringback>'):
                         self.ignore = False
-                        self.final_audio = ' Audio/ringback.wav '
+                        self.final_audio = ' audio/ringback.wav '
                 else:
                     if line.startswith('<hangup>'):
                         self.ignore = True
