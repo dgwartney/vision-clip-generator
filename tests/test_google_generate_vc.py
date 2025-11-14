@@ -20,8 +20,10 @@ class TestVisionClipGeneratorInit:
         mocker.patch.dict(os.environ, {}, clear=True)
         generator = VisionClipGenerator(api_key='test_api_key')
 
-        assert generator.api_key == 'test_api_key'
-        assert 'test_api_key' in generator.url
+        # Now uses TTS provider abstraction
+        assert generator.tts_provider is not None
+        assert generator.tts_provider.name == 'google'
+        assert generator.tts_provider.api_key == 'test_api_key'
         assert generator.sox_path == "sox-14.4.2/sox "
         assert generator.va_locale == 'en-US'
         assert generator.va_voice == 'en-US-Journey-O'
@@ -31,14 +33,15 @@ class TestVisionClipGeneratorInit:
         mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'env_api_key'}, clear=True)
         generator = VisionClipGenerator()
 
-        assert generator.api_key == 'env_api_key'
-        assert 'env_api_key' in generator.url
+        assert generator.tts_provider is not None
+        assert generator.tts_provider.api_key == 'env_api_key'
 
     def test_init_without_api_key(self, mocker):
         """Test initialization fails without API key"""
         mocker.patch.dict(os.environ, {}, clear=True)
 
-        with pytest.raises(ValueError, match="GOOGLE_API_KEY must be set"):
+        from tts import TTSConfigurationError
+        with pytest.raises(TTSConfigurationError, match="requires an API key"):
             VisionClipGenerator()
 
     def test_init_with_custom_environment(self, mocker):
@@ -78,44 +81,42 @@ class TestTextToWav:
         return VisionClipGenerator()
 
     def test_text_to_wav_api_call(self, generator, mocker):
-        """Test that text_to_wav makes correct API call"""
-        mock_response = Mock()
-        mock_response.json.return_value = {
-            'audioContent': base64.b64encode(b'fake_audio_data').decode('utf-8')
-        }
-        mock_post = mocker.patch('requests.post', return_value=mock_response)
-        mocker.patch('builtins.open', mocker.mock_open())
+        """Test that text_to_wav delegates to TTS provider"""
+        # Mock the TTS provider's synthesize method
+        mock_synthesize = mocker.patch.object(
+            generator.tts_provider,
+            'synthesize',
+            return_value=b'fake_audio_data'
+        )
 
         generator.text_to_wav('en-US-Journey-O', 1.0, 'en-US', 'Hello world', 'test.wav')
 
-        # Verify API call was made
-        mock_post.assert_called_once()
-        call_args = mock_post.call_args
-        payload = call_args.kwargs['json']
-
-        assert payload['voice']['name'] == 'en-US-Journey-O'
-        assert payload['voice']['languageCode'] == 'en-US'
-        assert payload['audioConfig']['speakingRate'] == 1.0
-        assert payload['input']['text'] == 'Hello world'
+        # Verify synthesize was called with correct parameters
+        mock_synthesize.assert_called_once_with(
+            text='Hello world',
+            voice='en-US-Journey-O',
+            locale='en-US',
+            rate=1.0,
+            output_file='test.wav'
+        )
 
     def test_text_to_wav_file_write(self, generator, mocker):
-        """Test that text_to_wav writes audio to file"""
+        """Test that text_to_wav writes audio to file via provider"""
         original_data = b'audio_data_sample'
-        mock_response = Mock()
-        mock_response.json.return_value = {
-            'audioContent': base64.b64encode(original_data).decode('utf-8')
-        }
-        mocker.patch('requests.post', return_value=mock_response)
 
-        mock_file = mocker.mock_open()
-        mocker.patch('builtins.open', mock_file)
+        # Mock the provider's synthesize to write to file
+        mocker.patch.object(
+            generator.tts_provider,
+            'synthesize',
+            return_value=original_data
+        )
 
-        generator.text_to_wav('en-US-Journey-O', 1.0, 'en-US', 'Test', 'output.wav')
+        # The actual file writing is handled by the provider
+        # We just verify the method is called
+        result = generator.text_to_wav('en-US-Journey-O', 1.0, 'en-US', 'Test', 'output.wav')
 
-        # Verify file was opened and written
-        mock_file.assert_called_once_with('output.wav', 'wb')
-        handle = mock_file()
-        handle.write.assert_called_once_with(original_data)
+        # The method doesn't return anything, but the provider's synthesize is called
+        generator.tts_provider.synthesize.assert_called_once()
 
 
 class TestProcessIvaLine:

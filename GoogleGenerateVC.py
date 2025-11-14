@@ -6,80 +6,107 @@ import os
 import sounddevice as sd
 import soundfile as sf
 import time
-import requests
-import base64
+
+# Import TTS abstraction layer
+from tts import create_tts_provider, TTSProvider
 
 
 class VisionClipGenerator:
     """
     Vision Clip Generator - Creates conversational audio demos by combining
     Text-to-Speech (TTS) and live microphone recordings.
+
+    Now supports multiple TTS providers through the abstraction layer:
+    - Google Cloud TTS (default)
+    - Azure Cognitive Services
+    - ElevenLabs
+    - AWS Polly
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        tts_provider: Optional[str] = None,
+        tts_instance: Optional[TTSProvider] = None,
+        **tts_config
+    ):
         """
         Initialize the Vision Clip Generator.
 
         Args:
-            api_key: Google API key for TTS. If None, reads from GOOGLE_API_KEY env var.
+            api_key: API key for TTS provider. If None, reads from environment.
+                    For backward compatibility with Google TTS.
+            tts_provider: TTS provider name ('google', 'azure', 'elevenlabs', 'aws').
+                         If None, defaults to 'google' or reads from TTS_PROVIDER env var.
+            tts_instance: Pre-configured TTS provider instance (optional).
+                         If provided, overrides api_key and tts_provider.
+            **tts_config: Additional TTS configuration options.
+
+        Examples:
+            # Backward compatible - Google with API key
+            generator = VisionClipGenerator(api_key='xxx')
+
+            # Explicit provider selection
+            generator = VisionClipGenerator(tts_provider='azure', subscription_key='xxx')
+
+            # Pre-configured provider
+            provider = create_tts_provider('elevenlabs', api_key='xxx')
+            generator = VisionClipGenerator(tts_instance=provider)
+
+            # Configuration from environment
+            generator = VisionClipGenerator()  # Uses TTS_PROVIDER and provider-specific env vars
         """
-        self.api_key = api_key or os.getenv('GOOGLE_API_KEY')
-        if not self.api_key:
-            raise ValueError("GOOGLE_API_KEY must be set in environment or passed to constructor")
-
-        self.url = f'https://texttospeech.googleapis.com/v1beta1/text:synthesize?alt=json&key={self.api_key}'
-
         # Audio processing paths
         self.sox_path = "sox-14.4.2/sox "
         self.rec_path = "sox-14.4.2/rec "
         self.play_path = "afplay "
-
-        # Voice configuration
-        self.va_locale = os.getenv('VA_LOCALE', 'en-US')
-        self.va_voice = os.getenv('VA_VOICE', 'en-US-Journey-O')
-        self.caller_locale = os.getenv('CALLER_LOCALE', 'en-US')
-        self.caller_voice = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
 
         # Processing state
         self.ignore = True
         self.fnum = 1
         self.final_audio = ''
 
+        # Initialize TTS provider
+        if tts_instance:
+            # Use provided TTS instance
+            self.tts_provider = tts_instance
+        else:
+            # Create TTS provider from configuration
+            # For backward compatibility, map api_key to google.api_key
+            if api_key:
+                if tts_provider is None or tts_provider == 'google':
+                    tts_config['api_key'] = api_key
+
+            self.tts_provider = create_tts_provider(
+                provider=tts_provider,
+                **tts_config
+            )
+
+        # Get voice configuration from provider or environment
+        provider_config = getattr(self.tts_provider, 'va_voice', None)
+        self.va_locale = getattr(self.tts_provider, 'va_locale', os.getenv('VA_LOCALE', 'en-US'))
+        self.va_voice = getattr(self.tts_provider, 'va_voice', os.getenv('VA_VOICE', 'en-US-Journey-O'))
+        self.caller_locale = getattr(self.tts_provider, 'caller_locale', os.getenv('CALLER_LOCALE', 'en-US'))
+        self.caller_voice = getattr(self.tts_provider, 'caller_voice', os.getenv('CALLER_VOICE', 'en-US-Journey-D'))
+
     def text_to_wav(self, voice: str, rate: float, locale: str, text: str, filename: str) -> None:
         """
-        Convert text to WAV audio using Google Text-to-Speech API.
+        Convert text to WAV audio using the configured TTS provider.
 
         Args:
-            voice: Voice name (e.g., 'en-US-Journey-O')
+            voice: Voice name (provider-specific)
             rate: Speaking rate (1.0 is normal)
             locale: Locale code (e.g., 'en-US')
             text: Text to convert to speech
             filename: Output WAV filename
         """
-        headers = {'content-type': 'application/json'}
-        payload = {
-            "audioConfig": {
-                "audioEncoding": "LINEAR16",
-                "effectsProfileId": ["telephony-class-application"],
-                "pitch": 0,
-                "speakingRate": rate
-            },
-            "input": {
-                "text": text
-            },
-            "voice": {
-                "languageCode": locale,
-                "name": voice
-            }
-        }
-
-        response = requests.post(self.url, json=payload, headers=headers)
-        audio_json = response.json()
-        audio_content = audio_json['audioContent']
-        decoded_data = base64.b64decode(audio_content, ' /')
-
-        with open(filename, 'wb') as pcm:
-            pcm.write(decoded_data)
+        self.tts_provider.synthesize(
+            text=text,
+            voice=voice,
+            locale=locale,
+            rate=rate,
+            output_file=filename
+        )
 
     def process_iva_line(self, line: str) -> None:
         """
