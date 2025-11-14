@@ -108,24 +108,24 @@ uv sync
 
 Then run using the `vision-clip` command:
 ```bash
-vision-clip --file dialogs/confirmation.txt --record 1
+vision-clip --file dialogs/confirmation.txt --record
 ```
 
 ### Method 2: Using uv run (No Installation Required - Recommended)
 
 ```bash
-uv run vision-clip --file dialogs/confirmation.txt --record 1
+uv run vision-clip --file dialogs/confirmation.txt --record
 ```
 
 ### Method 3: Direct Script Execution (Legacy Compatibility)
 
 ```bash
-python main.py --file dialogs/confirmation.txt --record 1
+python main.py --file dialogs/confirmation.txt --record
 ```
 
 **Arguments**:
 - `--file`: Path to vision clip script file (required)
-- `--record`: Set to `1` to record caller audio via microphone; omit to use TTS for both sides
+- `--record`: Record caller audio via microphone; omit to use TTS for both sides
 
 ### Clean Generated Audio Files
 ```bash
@@ -393,7 +393,7 @@ Caller:N: [What user should say, with N-second recording duration]
 ## Important Notes
 
 - **TTS Abstraction Layer**: The application now supports multiple TTS providers (Google, Azure, ElevenLabs, AWS) through a unified interface
-- **Recording mode** (`--record 1`) records caller audio via microphone
+- **Recording mode** (`--record`) records caller audio via microphone
 - **TTS-only mode** (omit `--record` flag) generates both sides using TTS (fully supported)
 - **Backward compatibility**: Existing scripts using `VisionClipGenerator(api_key='...')` continue to work with Google TTS
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider

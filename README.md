@@ -146,19 +146,19 @@ uv sync
 
 Then run using the `vision-clip` command:
 ```shell
-vision-clip --file dialogs/confirmation.txt --record 1
+vision-clip --file dialogs/confirmation.txt --record
 ```
 
 ### Method 2: Using uv run (No Installation Required - Recommended)
 
 ```shell
-uv run vision-clip --file dialogs/confirmation.txt --record 1
+uv run vision-clip --file dialogs/confirmation.txt --record
 ```
 
 ### Method 3: Direct Script Execution (Legacy Compatibility)
 
 ```shell
-python main.py --file dialogs/confirmation.txt --record 1
+python main.py --file dialogs/confirmation.txt --record
 ```
 
 **Note**: Choose based on your workflow:
@@ -168,10 +168,10 @@ python main.py --file dialogs/confirmation.txt --record 1
 
 **Arguments**:
 - `--file <path>`: Path to vision clip dialog script file (required)
-- `--record 1`: Record caller audio from microphone (interactive mode)
+- `--record`: Record caller audio from microphone (interactive mode)
 
 **Modes**:
-- **With `--record 1`**: Records caller audio from microphone (interactive mode)
+- **With `--record`**: Records caller audio from microphone (interactive mode)
 - **Without `--record`**: Generates both IVA and caller audio using TTS (fully automated, useful for quick prototypes)
 
 The voices can be customized using environment variables (see Voice Configuration above).

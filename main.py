@@ -239,7 +239,7 @@ def main():
     )
 
     parser.add_argument("--file", metavar="<path>", help="Path to Vision Clip File", required=True)
-    parser.add_argument("--record", metavar="1", help="Record customer side using microphone rather than TTS")
+    parser.add_argument("--record", action="store_true", help="Record customer side using microphone rather than TTS")
 
     args = parser.parse_args()
 
@@ -252,7 +252,7 @@ def main():
         return 1
 
     # Process the dialog file
-    record_mode = args.record is not None
+    record_mode = args.record
     output_file = generator.generate(args.file, record_mode)
 
     print(f"\nGenerated vision clip: {output_file}")
