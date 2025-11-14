@@ -2,6 +2,7 @@
 
 clean:
 	$(RM) *.wav
+	$(RM) -r .temp
 
 test:
 	uv run pytest -v

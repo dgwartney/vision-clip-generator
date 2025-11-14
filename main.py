@@ -3,6 +3,7 @@
 from typing import Optional
 import argparse
 import os
+import shutil
 import sounddevice as sd
 import soundfile as sf
 import time
@@ -60,6 +61,7 @@ class VisionClipGenerator:
         self.sox_path = "sox-14.4.2/sox "
         self.rec_path = "sox-14.4.2/rec "
         self.play_path = "afplay "
+        self.temp_dir = ".temp"
 
         # Processing state
         self.ignore = True
@@ -118,7 +120,7 @@ class VisionClipGenerator:
         ivr = line.split(':', 1)
         print(line)
         text = ivr[1]
-        filename = str(self.fnum) + '.wav'
+        filename = os.path.join(self.temp_dir, f'{self.fnum:03d}_va.wav')
 
         self.text_to_wav(self.va_voice, 1, self.va_locale, text, filename)
 
@@ -141,7 +143,7 @@ class VisionClipGenerator:
         caller = line.split(':', 2)
         print(line)
         text = caller[2]
-        filename = str(self.fnum) + '.wav'
+        filename = os.path.join(self.temp_dir, f'{self.fnum:03d}_caller.wav')
 
         if record_mode:
             print("Speak now")
@@ -152,8 +154,9 @@ class VisionClipGenerator:
             sd.wait()
 
             # Write to temporary file and process with sox
-            sf.write('tmp.wav', myrecording, 24000)
-            os.system(self.sox_path + 'tmp.wav ' + filename + ' ')
+            tmp_file = os.path.join(self.temp_dir, 'tmp.wav')
+            sf.write(tmp_file, myrecording, 24000)
+            os.system(self.sox_path + tmp_file + ' ' + filename + ' ')
         else:
             # Generate using TTS
             self.text_to_wav(self.caller_voice, 1, self.caller_locale, text, filename)
@@ -177,17 +180,21 @@ class VisionClipGenerator:
         elif line.startswith('<text>'):
             self.final_audio += 'audio/text-received.wav '
 
-    def process_dialog_file(self, filepath: str, record_mode: bool = False) -> str:
+    def process_dialog_file(self, filepath: str, record_mode: bool = False, output_file: str = 'vc.wav') -> str:
         """
         Process a dialog script file and generate audio.
 
         Args:
             filepath: Path to the dialog script file
             record_mode: If True, record caller audio from microphone
+            output_file: Path for the final output file (default: vc.wav)
 
         Returns:
-            Path to the final generated audio file (vc.wav)
+            Path to the final generated audio file
         """
+        # Create temp directory if it doesn't exist
+        os.makedirs(self.temp_dir, exist_ok=True)
+
         # Reset state
         self.ignore = True
         self.fnum = 1
@@ -212,23 +219,29 @@ class VisionClipGenerator:
                             self.process_caller_line(line, record_mode)
 
         # Concatenate all audio files into final output
-        output_file = 'vc.wav'
         os.system(self.sox_path + self.final_audio + ' ' + output_file)
+
+        # Clean up temp directory
+        try:
+            shutil.rmtree(self.temp_dir)
+        except Exception as e:
+            print(f"Warning: Could not clean up temp directory: {e}")
 
         return output_file
 
-    def generate(self, filepath: str, record_mode: bool = False) -> str:
+    def generate(self, filepath: str, record_mode: bool = False, output_file: str = 'vc.wav') -> str:
         """
         Generate a vision clip from a dialog script file.
 
         Args:
             filepath: Path to the dialog script file
             record_mode: If True, record caller audio from microphone
+            output_file: Path for the final output file (default: vc.wav)
 
         Returns:
             Path to the final generated audio file
         """
-        return self.process_dialog_file(filepath, record_mode)
+        return self.process_dialog_file(filepath, record_mode, output_file)
 
 
 def main():
@@ -240,6 +253,7 @@ def main():
 
     parser.add_argument("--file", metavar="<path>", help="Path to Vision Clip File", required=True)
     parser.add_argument("--record", action="store_true", help="Record customer side using microphone rather than TTS")
+    parser.add_argument("--output", "-o", metavar="<path>", help="Output file path (default: vc.wav)", default="vc.wav")
 
     args = parser.parse_args()
 
@@ -253,7 +267,7 @@ def main():
 
     # Process the dialog file
     record_mode = args.record
-    output_file = generator.generate(args.file, record_mode)
+    output_file = generator.generate(args.file, record_mode, args.output)
 
     print(f"\nGenerated vision clip: {output_file}")
     return 0

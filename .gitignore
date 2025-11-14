@@ -1,5 +1,6 @@
 # Output files
 *.wav
+.temp/
 # Input files
 #dialogs/
 # Environment variables

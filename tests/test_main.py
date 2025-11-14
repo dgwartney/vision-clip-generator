@@ -142,12 +142,12 @@ class TestProcessIvaLine:
 
         # Verify text_to_wav was called with correct parameters
         generator.text_to_wav.assert_called_once_with(
-            generator.va_voice, 1, generator.va_locale, ' Hello, how can I help you?', '5.wav'
+            generator.va_voice, 1, generator.va_locale, ' Hello, how can I help you?', '.temp/005_va.wav'
         )
 
         # Verify state was updated
         assert generator.fnum == 6
-        assert '5.wav' in generator.final_audio
+        assert '005_va.wav' in generator.final_audio
 
 
 class TestProcessCallerLine:
@@ -170,11 +170,11 @@ class TestProcessCallerLine:
 
         # Verify TTS was called
         generator.text_to_wav.assert_called_once_with(
-            generator.caller_voice, 1, generator.caller_locale, ' I need help with my reservation', '3.wav'
+            generator.caller_voice, 1, generator.caller_locale, ' I need help with my reservation', '.temp/003_caller.wav'
         )
 
         assert generator.fnum == 4
-        assert '3.wav' in generator.final_audio
+        assert '003_caller.wav' in generator.final_audio
 
     def test_process_caller_line_record_mode(self, generator, mocker):
         """Test processing caller line with microphone recording"""
@@ -193,7 +193,7 @@ class TestProcessCallerLine:
         mock_rec.assert_called_once_with(expected_samples, samplerate=24000, channels=1)
 
         assert generator.fnum == 3
-        assert '2.wav' in generator.final_audio
+        assert '002_caller.wav' in generator.final_audio
 
 
 class TestProcessSpecialTag:
@@ -464,5 +464,5 @@ class TestGenerateMethod:
 
         result = generator.generate('test.txt', record_mode=True)
 
-        mock_process.assert_called_once_with('test.txt', True)
+        mock_process.assert_called_once_with('test.txt', True, 'vc.wav')
         assert result == 'vc.wav'

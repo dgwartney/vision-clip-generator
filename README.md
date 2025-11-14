@@ -169,12 +169,32 @@ python main.py --file dialogs/confirmation.txt --record
 **Arguments**:
 - `--file <path>`: Path to vision clip dialog script file (required)
 - `--record`: Record caller audio from microphone (interactive mode)
+- `--output <path>` or `-o <path>`: Output file path (default: vc.wav)
+
+**Examples**:
+```shell
+# Basic usage with default output
+vision-clip --file dialogs/confirmation.txt
+
+# With custom output location
+vision-clip --file dialogs/confirmation.txt --output output/demo.wav
+
+# With recording and custom output
+vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.wav
+```
 
 **Modes**:
 - **With `--record`**: Records caller audio from microphone (interactive mode)
 - **Without `--record`**: Generates both IVA and caller audio using TTS (fully automated, useful for quick prototypes)
 
 The voices can be customized using environment variables (see Voice Configuration above).
+
+### Temporary Files
+
+Intermediate audio files are generated during processing with improved naming:
+- Format: `{sequence}_{speaker}.wav` (e.g., `001_va.wav`, `002_caller.wav`)
+- Location: `.temp/` directory (auto-created, auto-cleaned)
+- Cleanup: Automatically removed after successful generation
 
 ## Operation
 After running the script it will iterate through the text file. When it hits an IVA line it will call the API to

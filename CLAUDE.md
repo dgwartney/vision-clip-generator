@@ -124,8 +124,21 @@ python main.py --file dialogs/confirmation.txt --record
 ```
 
 **Arguments**:
-- `--file`: Path to vision clip script file (required)
+- `--file <path>`: Path to vision clip script file (required)
 - `--record`: Record caller audio via microphone; omit to use TTS for both sides
+- `--output <path>` or `-o <path>`: Output file path (default: vc.wav)
+
+**Examples**:
+```bash
+# Basic usage with default output
+vision-clip --file dialogs/confirmation.txt
+
+# With custom output location
+vision-clip --file dialogs/confirmation.txt --output output/demo.wav
+
+# With recording and custom output
+vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.wav
+```
 
 ### Clean Generated Audio Files
 ```bash
@@ -162,7 +175,9 @@ All tests use mocking to avoid external dependencies and actual API calls.
    - `IVA:` lines → Generate TTS, play through speakers, add to final audio
    - `Caller:N:` lines → Record from mic for N seconds (when `--record` flag present)
    - Special tags (`<backend>`, `<sendmail>`, `<transfer>`, `<text>`) → Insert pre-recorded audio from `audio/` directory
-4. **Audio stitching**: Uses sox to concatenate all segments into `vc.wav`
+4. **Temporary file organization**: Intermediate audio stored in `.temp/` directory with sequential naming
+5. **Audio stitching**: Uses sox to concatenate all segments into output file (default: `vc.wav`)
+6. **Cleanup**: Automatically removes `.temp/` directory after successful generation
 
 ### Key Components
 
@@ -186,11 +201,11 @@ output_file = generator.generate('dialogs/confirmation.txt', record_mode=True)
 **VisionClipGenerator Class Methods**:
 - `__init__(api_key, tts_provider, tts_instance, **tts_config)`: Initialize with TTS provider and voice settings
 - `text_to_wav(voice, rate, locale, text, filename)`: Convert text to WAV using configured TTS provider
-- `process_iva_line(line)`: Process IVA dialogue lines (TTS + playback)
-- `process_caller_line(line, record_mode)`: Process Caller lines (record or TTS)
+- `process_iva_line(line)`: Process IVA dialogue lines (TTS + playback) - generates files like `001_va.wav`
+- `process_caller_line(line, record_mode)`: Process Caller lines (record or TTS) - generates files like `001_caller.wav`
 - `process_special_tag(line)`: Handle special audio tags (backend, sendmail, etc.)
-- `process_dialog_file(filepath, record_mode)`: Main processing logic for dialog scripts
-- `generate(filepath, record_mode)`: Public API for generating vision clips
+- `process_dialog_file(filepath, record_mode, output_file)`: Main processing logic for dialog scripts
+- `generate(filepath, record_mode, output_file)`: Public API for generating vision clips
 
 **Technologies**:
 - **TTS Abstraction Layer**: Flexible provider system supporting Google, Azure, ElevenLabs, and AWS
@@ -360,13 +375,25 @@ Caller:N: [What user should say, with N-second recording duration]
 ```
 
 ### Audio Files
-- Pre-recorded audio effects stored in `audio/` directory:
-  - `ringback.wav`: Phone ringing
-  - `backend.wav`: Backend processing sound
-  - `swoosh.wav`: Email sent sound
-  - `text-received.wav`: Text message notification
-- Generated audio: Numbered files `1.wav`, `2.wav`, etc., created during execution
-- Final output: `vc.wav` (concatenated audio of entire conversation)
+
+**Pre-recorded audio effects** stored in `audio/` directory:
+- `ringback.wav`: Phone ringing
+- `backend.wav`: Backend processing sound
+- `swoosh.wav`: Email sent sound
+- `text-received.wav`: Text message notification
+
+**Temporary audio files** (auto-generated during processing):
+- Location: `.temp/` directory (automatically created and cleaned up)
+- Naming format: `{sequence}_{speaker}.wav` (e.g., `001_va.wav`, `002_caller.wav`, `003_va.wav`)
+- Sequential numbering: Files are numbered in the order they appear in the conversation
+- Speaker indicators:
+  - `va`: Virtual assistant audio (generated via TTS)
+  - `caller`: Caller audio (recorded via microphone or generated via TTS)
+- Cleanup: Directory is automatically removed after successful generation
+
+**Final output**: Specified by `--output` argument (default: `vc.wav`)
+- Contains concatenated audio of the entire conversation
+- All temporary files stitched together in sequential order using sox
 
 ### Dependencies
 
@@ -397,7 +424,8 @@ Caller:N: [What user should say, with N-second recording duration]
 - **TTS-only mode** (omit `--record` flag) generates both sides using TTS (fully supported)
 - **Backward compatibility**: Existing scripts using `VisionClipGenerator(api_key='...')` continue to work with Google TTS
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider
-- Output file `vc.wav` is always created in the current working directory
+- **Output customization**: Use `--output` or `-o` to specify output file path (default: `vc.wav` in current directory)
+- **Temporary files**: Intermediate audio files are stored in `.temp/` directory with sequential naming (`001_va.wav`, `002_caller.wav`, etc.) and automatically cleaned up
 - The script uses `afplay` for audio playback, which is macOS-specific
 - The application uses a class-based architecture with comprehensive test coverage for maintainability
 
