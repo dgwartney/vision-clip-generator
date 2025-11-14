@@ -69,6 +69,14 @@ class TestVisionClipGeneratorInit:
         assert generator.ignore is True
         assert generator.fnum == 1
         assert generator.final_audio == ''
+        assert generator.keep_temp is False
+
+    def test_init_with_keep_temp(self, mocker):
+        """Test initialization with keep_temp flag"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator(keep_temp=True)
+
+        assert generator.keep_temp is True
 
 
 class TestTextToWav:
@@ -303,6 +311,35 @@ IVA: Let me help you with that.
         # State should be reset at start and incremented during processing
         assert generator.fnum > 1
 
+    def test_process_dialog_file_cleanup(self, generator, sample_dialog, mocker):
+        """Test that process_dialog_file cleans up temp directory by default"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch.object(generator, 'concatenate_audio_files')
+        mocker.patch('time.sleep')
+        mock_rmtree = mocker.patch('shutil.rmtree')
+
+        generator.process_dialog_file(sample_dialog, record_mode=False)
+
+        # Verify cleanup was called
+        mock_rmtree.assert_called_once_with('.temp')
+
+    def test_process_dialog_file_keep_temp(self, sample_dialog, mocker):
+        """Test that process_dialog_file preserves temp directory with keep_temp=True"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        generator = VisionClipGenerator(keep_temp=True)
+
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch.object(generator, 'concatenate_audio_files')
+        mocker.patch('time.sleep')
+        mock_rmtree = mocker.patch('shutil.rmtree')
+
+        generator.process_dialog_file(sample_dialog, record_mode=False)
+
+        # Verify cleanup was NOT called
+        mock_rmtree.assert_not_called()
+
 
 class TestLineParsingLogic:
     """Test the line parsing and processing logic"""
@@ -508,3 +545,34 @@ class TestGenerateMethod:
 
         mock_process.assert_called_once_with('test.txt', True, 'vc.wav')
         assert result == 'vc.wav'
+
+
+class TestSmartOutputPath:
+    """Test smart default output path generation"""
+
+    def test_basename_extraction(self):
+        """Test extraction of basename from various paths"""
+        # Simple case
+        assert os.path.basename('dialogs/confirmation.txt') == 'confirmation.txt'
+        # Nested path
+        assert os.path.basename('foo/bar/baz/file.txt') == 'file.txt'
+        # Already in current directory
+        assert os.path.basename('test.txt') == 'test.txt'
+
+    def test_extension_replacement(self):
+        """Test replacing extension with .wav"""
+        input_name, _ = os.path.splitext('confirmation.txt')
+        output = f"{input_name}.wav"
+        assert output == 'confirmation.wav'
+
+    def test_no_extension(self):
+        """Test handling file with no extension"""
+        input_name, _ = os.path.splitext('myfile')
+        output = f"{input_name}.wav"
+        assert output == 'myfile.wav'
+
+    def test_already_wav(self):
+        """Test handling file that's already .wav"""
+        input_name, _ = os.path.splitext('audio.wav')
+        output = f"{input_name}.wav"
+        assert output == 'audio.wav'

@@ -126,11 +126,12 @@ python main.py --file dialogs/confirmation.txt --record
 **Arguments**:
 - `--file <path>`: Path to vision clip script file (required)
 - `--record`: Record caller audio via microphone; omit to use TTS for both sides
-- `--output <path>` or `-o <path>`: Output file path (default: vc.wav)
+- `--output <path>` or `-o <path>`: Output file path (default: basename of input file with .wav extension)
+- `--keep-temp`: Keep temporary audio files in .temp/ directory (useful for debugging)
 
 **Examples**:
 ```bash
-# Basic usage with default output
+# Basic usage with smart default output (confirmation.txt → confirmation.wav)
 vision-clip --file dialogs/confirmation.txt
 
 # With custom output location
@@ -138,7 +139,14 @@ vision-clip --file dialogs/confirmation.txt --output output/demo.wav
 
 # With recording and custom output
 vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.wav
+
+# Keep temporary files for inspection
+vision-clip --file dialogs/confirmation.txt --keep-temp
 ```
+
+**Smart Default Output Path**:
+- Output filename derived from input: `dialogs/confirmation.txt` → `confirmation.wav`
+- Explicit `--output` always overrides
 
 ### Clean Generated Audio Files
 ```bash
@@ -383,17 +391,20 @@ Caller:N: [What user should say, with N-second recording duration]
 - `text-received.wav`: Text message notification
 
 **Temporary audio files** (auto-generated during processing):
-- Location: `.temp/` directory (automatically created and cleaned up)
+- Location: `.temp/` directory (automatically created)
 - Naming format: `{sequence}_{speaker}.wav` (e.g., `001_va.wav`, `002_caller.wav`, `003_va.wav`)
 - Sequential numbering: Files are numbered in the order they appear in the conversation
 - Speaker indicators:
   - `va`: Virtual assistant audio (generated via TTS)
   - `caller`: Caller audio (recorded via microphone or generated via TTS)
-- Cleanup: Directory is automatically removed after successful generation
+- Cleanup: Directory is automatically removed after successful generation (unless `--keep-temp` is used)
+- Preservation: Use `--keep-temp` flag to keep files for debugging or inspection
 
-**Final output**: Specified by `--output` argument (default: `vc.wav`)
+**Final output**: Specified by `--output` argument (default: basename of input file with .wav extension)
 - Contains concatenated audio of the entire conversation
 - All temporary files stitched together in sequential order using pydub
+- Smart default: `dialogs/confirmation.txt` → `confirmation.wav`
+- Explicit `--output` always overrides this behavior
 
 ### Dependencies
 
@@ -425,8 +436,10 @@ Caller:N: [What user should say, with N-second recording duration]
 - **TTS-only mode** (omit `--record` flag) generates both sides using TTS (fully supported)
 - **Backward compatibility**: Existing scripts using `VisionClipGenerator(api_key='...')` continue to work with Google TTS
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider
-- **Output customization**: Use `--output` or `-o` to specify output file path (default: `vc.wav` in current directory)
-- **Temporary files**: Intermediate audio files are stored in `.temp/` directory with sequential naming (`001_va.wav`, `002_caller.wav`, etc.) and automatically cleaned up
+- **Smart output naming**: Output filename automatically derived from input file basename (e.g., `confirmation.txt` → `confirmation.wav`)
+- **Output customization**: Use `--output` or `-o` to specify custom output file path
+- **Temporary files**: Intermediate audio files are stored in `.temp/` directory with sequential naming (`001_va.wav`, `002_caller.wav`, etc.)
+- **Temp file preservation**: Use `--keep-temp` flag to preserve temporary files for debugging (automatically cleaned up by default)
 - The application uses a class-based architecture with comprehensive test coverage for maintainability
 
 ## Migration from Legacy GenerateVC.py

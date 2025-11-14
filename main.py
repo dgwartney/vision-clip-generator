@@ -30,6 +30,7 @@ class VisionClipGenerator:
         api_key: Optional[str] = None,
         tts_provider: Optional[str] = None,
         tts_instance: Optional[TTSProvider] = None,
+        keep_temp: bool = False,
         **tts_config
     ):
         """
@@ -42,6 +43,8 @@ class VisionClipGenerator:
                          If None, defaults to 'google' or reads from TTS_PROVIDER env var.
             tts_instance: Pre-configured TTS provider instance (optional).
                          If provided, overrides api_key and tts_provider.
+            keep_temp: If True, preserve temporary audio files in .temp/ directory.
+                      If False (default), clean up temp files after generation.
             **tts_config: Additional TTS configuration options.
 
         Examples:
@@ -60,6 +63,7 @@ class VisionClipGenerator:
         """
         # Audio processing paths
         self.temp_dir = ".temp"
+        self.keep_temp = keep_temp
 
         # Processing state
         self.ignore = True
@@ -245,11 +249,14 @@ class VisionClipGenerator:
         # Concatenate all audio files into final output using pydub
         self.concatenate_audio_files(self.final_audio, output_file)
 
-        # Clean up temp directory
-        try:
-            shutil.rmtree(self.temp_dir)
-        except Exception as e:
-            print(f"Warning: Could not clean up temp directory: {e}")
+        # Clean up temp directory (unless --keep-temp flag is set)
+        if not self.keep_temp:
+            try:
+                shutil.rmtree(self.temp_dir)
+            except Exception as e:
+                print(f"Warning: Could not clean up temp directory: {e}")
+        else:
+            print(f"Temporary files preserved in: {self.temp_dir}/")
 
         return output_file
 
@@ -277,13 +284,20 @@ def main():
 
     parser.add_argument("--file", metavar="<path>", help="Path to Vision Clip File", required=True)
     parser.add_argument("--record", action="store_true", help="Record customer side using microphone rather than TTS")
-    parser.add_argument("--output", "-o", metavar="<path>", help="Output file path (default: vc.wav)", default="vc.wav")
+    parser.add_argument("--output", "-o", metavar="<path>", help="Output file path (default: basename of input file with .wav extension)", default="vc.wav")
+    parser.add_argument("--keep-temp", action="store_true", help="Keep temporary audio files in .temp/ directory")
 
     args = parser.parse_args()
 
+    # Smart default output path: use basename of input file if output not explicitly set
+    if args.output == "vc.wav":  # User didn't specify custom output
+        input_basename = os.path.basename(args.file)
+        input_name, _ = os.path.splitext(input_basename)
+        args.output = f"{input_name}.wav"
+
     # Create generator instance
     try:
-        generator = VisionClipGenerator()
+        generator = VisionClipGenerator(keep_temp=args.keep_temp)
     except ValueError as e:
         print(f"Error: {e}")
         print("Please set GOOGLE_API_KEY environment variable")

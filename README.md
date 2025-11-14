@@ -167,11 +167,12 @@ python main.py --file dialogs/confirmation.txt --record
 **Arguments**:
 - `--file <path>`: Path to vision clip dialog script file (required)
 - `--record`: Record caller audio from microphone (interactive mode)
-- `--output <path>` or `-o <path>`: Output file path (default: vc.wav)
+- `--output <path>` or `-o <path>`: Output file path (default: basename of input file with .wav extension)
+- `--keep-temp`: Keep temporary audio files in .temp/ directory (useful for debugging)
 
 **Examples**:
 ```shell
-# Basic usage with default output
+# Basic usage with smart default output (confirmation.txt → confirmation.wav)
 vision-clip --file dialogs/confirmation.txt
 
 # With custom output location
@@ -179,7 +180,17 @@ vision-clip --file dialogs/confirmation.txt --output output/demo.wav
 
 # With recording and custom output
 vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.wav
+
+# Keep temporary files for inspection
+vision-clip --file dialogs/confirmation.txt --keep-temp
 ```
+
+**Smart Default Output Path**:
+By default, the output filename is derived from the input file:
+- `dialogs/confirmation.txt` → `confirmation.wav`
+- `foo/bar/test.txt` → `test.wav`
+- `myfile` → `myfile.wav`
+- Explicit `--output` always overrides this behavior
 
 **Modes**:
 - **With `--record`**: Records caller audio from microphone (interactive mode)
@@ -191,8 +202,9 @@ The voices can be customized using environment variables (see Voice Configuratio
 
 Intermediate audio files are generated during processing with improved naming:
 - Format: `{sequence}_{speaker}.wav` (e.g., `001_va.wav`, `002_caller.wav`)
-- Location: `.temp/` directory (auto-created, auto-cleaned)
-- Cleanup: Automatically removed after successful generation
+- Location: `.temp/` directory (auto-created)
+- Cleanup: Automatically removed after successful generation (unless `--keep-temp` is used)
+- Preservation: Use `--keep-temp` flag to keep files for debugging or inspection
 
 ## Operation
 After running the script it will iterate through the text file. When it hits an IVA line it will call the API to
