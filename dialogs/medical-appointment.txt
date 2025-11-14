@@ -2,7 +2,7 @@
 
 IVA: Good morning, you’ve reached HarborPoint Diagnostics. I’m the virtual assistant. How can I assist you today?
 
-Caller:18: Hi, I need to reschedule my appointment. It’s supposed to be next Monday morning. I also forgot what I need to do to get ready for it and which location I pickeded?
+Caller:18: Hi, I need to reschedule my appointment on this coming Monday morning. Not sure what I need to do to get ready for it or even which location I picked?
 
 IVA: Sure thing! I can help with that. 
 
