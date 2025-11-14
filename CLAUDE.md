@@ -397,10 +397,36 @@ Caller:N: [What user should say, with N-second recording duration]
 - **TTS-only mode** (omit `--record` flag) generates both sides using TTS (fully supported)
 - **Backward compatibility**: Existing scripts using `VisionClipGenerator(api_key='...')` continue to work with Google TTS
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider
-- `GenerateVC.py` (legacy Azure implementation) contains hardcoded credentials and should not be used - use the new TTS abstraction layer instead
 - Output file `vc.wav` is always created in the current working directory
 - The script uses `afplay` for audio playback, which is macOS-specific
 - The application uses a class-based architecture with comprehensive test coverage for maintainability
+
+## Migration from Legacy GenerateVC.py
+
+The legacy `GenerateVC.py` script has been removed as all functionality is now available through the modern TTS abstraction layer.
+
+**Old (Legacy):**
+```bash
+python GenerateVC.py --file dialogs/confirmation.txt --record 1
+```
+
+**New (Modern):**
+```bash
+# Set Azure credentials via environment variables
+export TTS_PROVIDER=azure
+export AZURE_SUBSCRIPTION_KEY=your-subscription-key-here
+export AZURE_REGION=eastus
+
+# Run with the modern CLI
+vision-clip --file dialogs/confirmation.txt --record
+```
+
+**Benefits of migration:**
+- Secure credential management (no hardcoded keys)
+- Unified interface across all TTS providers
+- Comprehensive test coverage
+- Active maintenance and support
+- Ability to switch between providers easily
 
 ## Adding New TTS Providers
 
