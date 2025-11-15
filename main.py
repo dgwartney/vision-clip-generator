@@ -2,6 +2,7 @@
 
 from typing import Optional
 import argparse
+import logging
 import os
 import shutil
 import sounddevice as sd
@@ -11,6 +12,55 @@ from pydub import AudioSegment
 
 # Import TTS abstraction layer
 from tts import create_tts_provider, TTSProvider
+
+# Module-level logger
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(
+    console_level: str = 'INFO',
+    log_file: Optional[str] = None,
+    file_level: str = 'DEBUG'
+) -> None:
+    """
+    Configure application logging with console and optional file output.
+
+    Args:
+        console_level: Logging level for console output (default: INFO)
+        log_file: Path to log file. If None, no file logging. (default: None)
+        file_level: Logging level for file output (default: DEBUG)
+    """
+    # Convert string levels to logging constants
+    console_level_value = getattr(logging, console_level.upper(), logging.INFO)
+    file_level_value = getattr(logging, file_level.upper(), logging.DEBUG)
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)  # Capture all messages, handlers will filter
+
+    # Remove any existing handlers
+    root_logger.handlers = []
+
+    # Console handler - user-friendly format
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(console_level_value)
+    console_format = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_format)
+    root_logger.addHandler(console_handler)
+
+    # File handler - detailed format (if log file specified)
+    if log_file:
+        try:
+            file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+            file_handler.setLevel(file_level_value)
+            file_format = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+            )
+            file_handler.setFormatter(file_format)
+            root_logger.addHandler(file_handler)
+            logger.info(f"Logging to file: {log_file}")
+        except Exception as e:
+            logger.warning(f"Could not create log file {log_file}: {e}")
 
 
 class VisionClipGenerator:
@@ -93,6 +143,9 @@ class VisionClipGenerator:
         self.caller_locale = getattr(self.tts_provider, 'caller_locale', os.getenv('CALLER_LOCALE', 'en-US'))
         self.caller_voice = getattr(self.tts_provider, 'caller_voice', os.getenv('CALLER_VOICE', 'en-US-Journey-D'))
 
+        logger.info(f"Using TTS provider: {self.tts_provider.name}")
+        logger.debug(f"Voice configuration: VA={self.va_voice}, Caller={self.caller_voice}")
+
     def text_to_wav(self, voice: str, rate: float, locale: str, text: str, filename: str) -> None:
         """
         Convert text to WAV audio using the configured TTS provider.
@@ -148,16 +201,18 @@ class VisionClipGenerator:
             line: The line containing IVA dialogue
         """
         ivr = line.split(':', 1)
-        print(line)
+        logger.info(line)
         text = ivr[1]
         filename = os.path.join(self.temp_dir, f'{self.fnum:03d}_va.wav')
 
+        logger.debug(f"Synthesizing IVA audio to {filename}")
         self.text_to_wav(self.va_voice, 1, self.va_locale, text, filename)
 
         # Sleep to allow audio file to close
         time.sleep(1)
 
         # Play the audio using sounddevice
+        logger.debug(f"Playing audio: {filename}")
         self.play_audio(filename)
         self.final_audio += filename + ' '
         self.fnum += 1
@@ -171,22 +226,25 @@ class VisionClipGenerator:
             record_mode: If True, record from microphone; if False, use TTS
         """
         caller = line.split(':', 2)
-        print(line)
+        logger.info(line)
         text = caller[2]
         filename = os.path.join(self.temp_dir, f'{self.fnum:03d}_caller.wav')
 
         if record_mode:
-            print("Speak now")
+            print("Speak now")  # Keep as print - user interaction prompt
             # Record audio from microphone
             duration_seconds = int(caller[1])
+            logger.debug(f"Recording {duration_seconds}s of audio to {filename}")
             numsamples = duration_seconds * 24000
             myrecording = sd.rec(numsamples, samplerate=24000, channels=1)
             sd.wait()
 
             # Write to file (soundfile already writes proper WAV format)
             sf.write(filename, myrecording, 24000)
+            logger.debug(f"Recording completed: {filename}")
         else:
             # Generate using TTS
+            logger.debug(f"Synthesizing caller audio to {filename}")
             self.text_to_wav(self.caller_voice, 1, self.caller_locale, text, filename)
 
         self.final_audio += filename + ' '
@@ -199,6 +257,7 @@ class VisionClipGenerator:
         Args:
             line: The line containing the special tag
         """
+        logger.debug(f"Processing special tag: {line.strip()}")
         if line.startswith('<backend>'):
             self.final_audio += 'audio/backend.wav '
         elif line.startswith('<sendmail>'):
@@ -220,8 +279,11 @@ class VisionClipGenerator:
         Returns:
             Path to the final generated audio file
         """
+        logger.info(f"Processing dialog file: {filepath}")
+
         # Create temp directory if it doesn't exist
         os.makedirs(self.temp_dir, exist_ok=True)
+        logger.debug(f"Created temp directory: {self.temp_dir}")
 
         # Reset state
         self.ignore = True
@@ -232,10 +294,12 @@ class VisionClipGenerator:
             for line in vfile:
                 if self.ignore:
                     if line.startswith('<ringback>'):
+                        logger.info("Starting dialog processing at <ringback> tag")
                         self.ignore = False
                         self.final_audio = ' audio/ringback.wav '
                 else:
                     if line.startswith('<hangup>'):
+                        logger.info("Dialog processing completed at <hangup> tag")
                         self.ignore = True
                     else:
                         if line.startswith('<backend>') or line.startswith('<sendmail>') or \
@@ -247,16 +311,19 @@ class VisionClipGenerator:
                             self.process_caller_line(line, record_mode)
 
         # Concatenate all audio files into final output using pydub
+        num_segments = len(self.final_audio.split())
+        logger.info(f"Concatenating {num_segments} audio segments into {output_file}")
         self.concatenate_audio_files(self.final_audio, output_file)
 
         # Clean up temp directory (unless --keep-temp flag is set)
         if not self.keep_temp:
             try:
                 shutil.rmtree(self.temp_dir)
+                logger.debug(f"Removed temp directory: {self.temp_dir}")
             except Exception as e:
-                print(f"Warning: Could not clean up temp directory: {e}")
+                logger.warning(f"Could not clean up temp directory: {e}")
         else:
-            print(f"Temporary files preserved in: {self.temp_dir}/")
+            logger.info(f"Temporary files preserved in: {self.temp_dir}/")
 
         return output_file
 
@@ -286,8 +353,18 @@ def main():
     parser.add_argument("--record", action="store_true", help="Record customer side using microphone rather than TTS")
     parser.add_argument("--output", "-o", metavar="<path>", help="Output file path (default: basename of input file with .wav extension)", default="vc.wav")
     parser.add_argument("--keep-temp", action="store_true", help="Keep temporary audio files in .temp/ directory")
+    parser.add_argument("--log-level", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help="Set console logging level (default: INFO)")
+    parser.add_argument("--log-file", nargs='?', const='vision-clip.log', metavar="<path>", help="Enable file logging. Optionally specify path (default: vision-clip.log)")
+    parser.add_argument("--log-file-level", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='DEBUG', help="Set file logging level (default: DEBUG)")
 
     args = parser.parse_args()
+
+    # Configure logging
+    setup_logging(
+        console_level=args.log_level,
+        log_file=args.log_file,
+        file_level=args.log_file_level
+    )
 
     # Smart default output path: use basename of input file if output not explicitly set
     if args.output == "vc.wav":  # User didn't specify custom output
@@ -295,19 +372,25 @@ def main():
         input_name, _ = os.path.splitext(input_basename)
         args.output = f"{input_name}.wav"
 
+    logger.info(f"Vision Clip Generator starting")
+    logger.debug(f"Input file: {args.file}")
+    logger.debug(f"Output file: {args.output}")
+    logger.debug(f"Record mode: {args.record}")
+    logger.debug(f"Keep temp files: {args.keep_temp}")
+
     # Create generator instance
     try:
         generator = VisionClipGenerator(keep_temp=args.keep_temp)
     except ValueError as e:
-        print(f"Error: {e}")
-        print("Please set GOOGLE_API_KEY environment variable")
+        logger.error(f"Configuration error: {e}")
+        logger.error("Please set GOOGLE_API_KEY environment variable")
         return 1
 
     # Process the dialog file
     record_mode = args.record
     output_file = generator.generate(args.file, record_mode, args.output)
 
-    print(f"\nGenerated vision clip: {output_file}")
+    logger.info(f"Generated vision clip: {output_file}")
     return 0
 
 

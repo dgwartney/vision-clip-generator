@@ -169,6 +169,9 @@ python main.py --file dialogs/confirmation.txt --record
 - `--record`: Record caller audio from microphone (interactive mode)
 - `--output <path>` or `-o <path>`: Output file path (default: basename of input file with .wav extension)
 - `--keep-temp`: Keep temporary audio files in .temp/ directory (useful for debugging)
+- `--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: Set console logging level (default: INFO)
+- `--log-file [PATH]`: Enable file logging. Optionally specify path (default: vision-clip.log)
+- `--log-file-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: Set file logging level (default: DEBUG)
 
 **Examples**:
 ```shell
@@ -183,6 +186,21 @@ vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.w
 
 # Keep temporary files for inspection
 vision-clip --file dialogs/confirmation.txt --keep-temp
+
+# Enable debug logging to console
+vision-clip --file dialogs/confirmation.txt --log-level DEBUG
+
+# Enable file logging (creates vision-clip.log)
+vision-clip --file dialogs/confirmation.txt --log-file
+
+# Custom log file path
+vision-clip --file dialogs/confirmation.txt --log-file logs/session.log
+
+# Quiet console, verbose file logging
+vision-clip --file dialogs/confirmation.txt --log-level WARNING --log-file
+
+# Maximum verbosity everywhere
+vision-clip --file dialogs/confirmation.txt --log-level DEBUG --log-file --log-file-level DEBUG
 ```
 
 **Smart Default Output Path**:
@@ -191,6 +209,16 @@ By default, the output filename is derived from the input file:
 - `foo/bar/test.txt` → `test.wav`
 - `myfile` → `myfile.wav`
 - Explicit `--output` always overrides this behavior
+
+**Logging**:
+The application uses Python's standard logging module with flexible configuration:
+- **Console logging**: Displays progress and messages (default: INFO level)
+- **File logging**: Optional detailed logs (default: DEBUG level when enabled)
+- **Log levels**: DEBUG (detailed), INFO (progress), WARNING (issues), ERROR (failures), CRITICAL (severe)
+- **Default behavior**: INFO messages to console, no file logging
+- **File logging**: Use `--log-file` to enable (creates vision-clip.log by default)
+- **Verbosity control**: Different log levels for console and file output
+- **Debugging**: Use `--log-level DEBUG` to see detailed operation information
 
 **Modes**:
 - **With `--record`**: Records caller audio from microphone (interactive mode)

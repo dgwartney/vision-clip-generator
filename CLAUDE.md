@@ -128,6 +128,9 @@ python main.py --file dialogs/confirmation.txt --record
 - `--record`: Record caller audio via microphone; omit to use TTS for both sides
 - `--output <path>` or `-o <path>`: Output file path (default: basename of input file with .wav extension)
 - `--keep-temp`: Keep temporary audio files in .temp/ directory (useful for debugging)
+- `--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: Set console logging level (default: INFO)
+- `--log-file [PATH]`: Enable file logging. Optionally specify path (default: vision-clip.log)
+- `--log-file-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}`: Set file logging level (default: DEBUG)
 
 **Examples**:
 ```bash
@@ -142,11 +145,30 @@ vision-clip --file dialogs/confirmation.txt --record -o demos/interactive-demo.w
 
 # Keep temporary files for inspection
 vision-clip --file dialogs/confirmation.txt --keep-temp
+
+# Enable debug logging to console
+vision-clip --file dialogs/confirmation.txt --log-level DEBUG
+
+# Enable file logging (creates vision-clip.log)
+vision-clip --file dialogs/confirmation.txt --log-file
+
+# Custom log file path
+vision-clip --file dialogs/confirmation.txt --log-file logs/session.log
+
+# Quiet console, verbose file logging
+vision-clip --file dialogs/confirmation.txt --log-level WARNING --log-file
 ```
 
 **Smart Default Output Path**:
 - Output filename derived from input: `dialogs/confirmation.txt` → `confirmation.wav`
 - Explicit `--output` always overrides
+
+**Logging**:
+- **Python standard logging**: Flexible, configurable logging system
+- **Console (default)**: INFO level messages (progress, dialogue lines, success)
+- **File (optional)**: DEBUG level messages (detailed operation info, file paths, API calls)
+- **Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- **Use cases**: Debug with `--log-level DEBUG`, audit with `--log-file`, troubleshoot with both
 
 ### Clean Generated Audio Files
 ```bash
@@ -438,6 +460,7 @@ Caller:N: [What user should say, with N-second recording duration]
 - **Provider selection**: Use `TTS_PROVIDER` environment variable or `tts_provider` parameter to select a different provider
 - **Smart output naming**: Output filename automatically derived from input file basename (e.g., `confirmation.txt` → `confirmation.wav`)
 - **Output customization**: Use `--output` or `-o` to specify custom output file path
+- **Logging**: Python standard library logging with configurable console (INFO) and file (DEBUG) output levels
 - **Temporary files**: Intermediate audio files are stored in `.temp/` directory with sequential naming (`001_va.wav`, `002_caller.wav`, etc.)
 - **Temp file preservation**: Use `--keep-temp` flag to preserve temporary files for debugging (automatically cleaned up by default)
 - The application uses a class-based architecture with comprehensive test coverage for maintainability

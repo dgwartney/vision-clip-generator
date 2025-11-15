@@ -3,13 +3,14 @@
 import pytest
 import os
 import sys
+import logging
 import tempfile
 from unittest.mock import Mock, patch, MagicMock, mock_open, call
 import base64
 
 # Import the module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from main import VisionClipGenerator
+from main import VisionClipGenerator, setup_logging
 
 
 class TestVisionClipGeneratorInit:
@@ -576,3 +577,77 @@ class TestSmartOutputPath:
         input_name, _ = os.path.splitext('audio.wav')
         output = f"{input_name}.wav"
         assert output == 'audio.wav'
+
+
+class TestLoggingSetup:
+    """Test logging setup and configuration"""
+
+    def test_setup_logging_console_only(self):
+        """Test logging setup with console handler only"""
+        # Clear existing handlers
+        root_logger = logging.getLogger()
+        root_logger.handlers = []
+
+        setup_logging(console_level='INFO', log_file=None)
+
+        # Verify root logger is configured
+        assert root_logger.level == logging.DEBUG
+
+        # Verify console handler exists
+        assert len(root_logger.handlers) == 1
+        console_handler = root_logger.handlers[0]
+        assert isinstance(console_handler, logging.StreamHandler)
+        assert console_handler.level == logging.INFO
+
+    def test_setup_logging_with_file(self, tmp_path):
+        """Test logging setup with file handler"""
+        # Clear existing handlers
+        root_logger = logging.getLogger()
+        root_logger.handlers = []
+
+        log_file = tmp_path / "test.log"
+        setup_logging(console_level='WARNING', log_file=str(log_file), file_level='DEBUG')
+
+        # Verify two handlers (console + file)
+        assert len(root_logger.handlers) == 2
+
+        # Find console and file handlers
+        console_handler = None
+        file_handler = None
+        for handler in root_logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                file_handler = handler
+            elif isinstance(handler, logging.StreamHandler) and not isinstance(handler, logging.FileHandler):
+                console_handler = handler
+
+        # Verify both handlers exist
+        assert console_handler is not None
+        assert file_handler is not None
+
+        # Verify levels
+        assert console_handler.level == logging.WARNING
+        assert file_handler.level == logging.DEBUG
+
+    def test_setup_logging_level_conversion(self):
+        """Test that string log levels are correctly converted"""
+        root_logger = logging.getLogger()
+        root_logger.handlers = []
+
+        setup_logging(console_level='debug', log_file=None)
+
+        console_handler = root_logger.handlers[0]
+        assert console_handler.level == logging.DEBUG
+
+    def test_setup_logging_file_creation_error(self, mocker):
+        """Test handling of file creation errors"""
+        root_logger = logging.getLogger()
+        root_logger.handlers = []
+
+        # Mock FileHandler to raise exception
+        mocker.patch('logging.FileHandler', side_effect=PermissionError("Permission denied"))
+
+        # Should not raise exception, just log warning
+        setup_logging(console_level='INFO', log_file='/invalid/path/test.log')
+
+        # Should still have console handler
+        assert len(root_logger.handlers) == 1
