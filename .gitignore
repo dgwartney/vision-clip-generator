@@ -1,5 +1,6 @@
 # Output files
 *.wav
+!audio/*.wav  # Keep pre-recorded audio effects
 .temp/
 # Input files
 #dialogs/
@@ -14,6 +15,11 @@ __pycache__/
 
 # C extensions
 *.so
+
+# C artifacts (test files)
+*.out
+*.o
+*.a
 
 # Distribution / packaging
 .Python

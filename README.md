@@ -294,4 +294,10 @@ IVA: Let me look up fares for you.  Just a sec.
 
 <backend>
 
+## Acknowledgments
 
+This project was inspired by the original idea and working code developed by **Matt Panaccione** (matthew.panaccione@gmail.com) during our time working together at Kore AI. His innovative approach to creating conversational audio demos laid the foundation for this implementation.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
