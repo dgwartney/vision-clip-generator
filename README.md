@@ -4,6 +4,23 @@
 
 This project uses `uv` for Python environment and dependency management.
 
+### System Dependencies
+
+**Required:**
+- Python 3.11 or higher
+- `uv` package manager
+
+**Optional (Recommended):**
+- **ffmpeg**: Required for full audio format support with pydub
+  - macOS: `brew install ffmpeg`
+  - Ubuntu/Debian: `sudo apt-get install ffmpeg`
+  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+
+**Platform-specific audio libraries** (usually pre-installed):
+- macOS: CoreAudio (built-in)
+- Linux: ALSA, PulseAudio, or JACK
+- Windows: Windows Audio Session API (built-in)
+
 ### Install uv
 
 If you don't have `uv` installed, install it first:
@@ -22,8 +39,18 @@ uv sync
 
 This will:
 - Create a `.venv` virtual environment
-- Install all required dependencies (protobuf, requests, sounddevice, soundfile)
+- Install all required dependencies (protobuf, requests, sounddevice, soundfile, pydub, pyyaml)
 - Lock dependency versions in `uv.lock`
+
+**For Development (includes testing tools):**
+```shell
+uv sync --extra dev
+```
+
+This additionally installs:
+- pytest (testing framework)
+- pytest-mock (mocking support)
+- pytest-cov (coverage reporting)
 
 ### Optional TTS Provider Dependencies
 
@@ -60,34 +87,65 @@ The following environment variables can be set to change the voice
 
 `VA_LOCALE` - Locale of the virtual assistant e.g. en-US
 `VA_VOICE` = os.getenv('VA_VOICE', 'en-US-Journey-O')
-CALLER_LOCALE = os.getenv('CALLER_LOCALE', 'en-US')
-CALLER_VOICE = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
+`CALLER_LOCALE` = os.getenv('CALLER_LOCALE', 'en-US')
+`CALLER_VOICE` = os.getenv('CALLER_VOICE', 'en-US-Journey-D')
 
 ## Running Tests
 
 This project includes comprehensive unit tests to validate the execution of the program.
 
+### Setup for Testing
+
+**Option 1: Using Make (Automatic - Recommended)**
+
+The Makefile automatically detects and installs dev dependencies if needed:
+
+```shell
+make test
+```
+
+**Option 2: Manual Setup**
+
+Install dev dependencies first, then run tests:
+
+```shell
+# Install dev dependencies
+uv sync --extra dev
+
+# Run tests
+uv run --extra dev pytest -v
+```
+
 ### Run All Tests
 
 ```shell
-# Using uv directly
-uv run pytest
-
-# Or using make
+# Using make (auto-installs dev dependencies if needed)
 make test
+
+# Or using uv directly (requires dev dependencies installed)
+uv run --extra dev pytest -v
 ```
 
 ### Run Tests with Coverage Report
 
 ```shell
-# Using uv directly
-uv run pytest --cov=. --cov-report=html
-
-# Or using make
+# Using make (auto-installs dev dependencies if needed)
 make test-cov
+
+# Or using uv directly (requires dev dependencies installed)
+uv run --extra dev pytest --cov=. --cov-report=html --cov-report=term-missing
 ```
 
 This will generate an HTML coverage report in the `htmlcov/` directory.
+
+### Manual Dev Dependencies Installation
+
+If you need to manually install or reinstall dev dependencies:
+
+```shell
+make install-dev
+# Or directly: uv sync --extra dev
+```
 
 ### Test Coverage
 
@@ -101,6 +159,22 @@ The test suite includes:
 - Integration tests
 
 All tests use mocking to avoid external dependencies and actual API calls.
+
+### Cleaning Test Artifacts
+
+Remove generated files including test coverage reports:
+
+```shell
+make clean
+```
+
+This removes:
+- Generated `.wav` files
+- `.temp/` directory
+- `htmlcov/` coverage reports
+- `.coverage` data
+- `.pytest_cache/`
+- Log files (`*.log`)
 
 ## Class-Based Architecture
 
