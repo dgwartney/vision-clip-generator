@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 import shutil
+import signal
 import sounddevice as sd
 import soundfile as sf
 import time
@@ -442,4 +443,8 @@ def main():
 
 
 if __name__ == '__main__':
-    exit(main())
+    try:
+        exit(main())
+    except KeyboardInterrupt:
+        print("\n\nExiting...")
+        exit(130)  # Unix convention: 128 + signal number (SIGINT=2) for signal-terminated processes

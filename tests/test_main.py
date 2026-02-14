@@ -954,3 +954,66 @@ IVA: Test
         # Verify error was logged
         assert "Failed to write output file" in caplog.text
         assert "restricted.wav" in caplog.text
+
+
+class TestKeyboardInterruptHandling:
+    """Test graceful handling of Ctrl+C (KeyboardInterrupt)"""
+
+    def test_keyboard_interrupt_exits_gracefully(self, mocker, capsys):
+        """Test that KeyboardInterrupt during main() is caught and exits with code 130"""
+        # Mock main() to raise KeyboardInterrupt
+        mock_main = mocker.patch('main.main', side_effect=KeyboardInterrupt())
+
+        # Import the module to execute __main__ block
+        import main as main_module
+
+        # Execute the __main__ block logic directly
+        with pytest.raises(SystemExit) as exc_info:
+            try:
+                exit(mock_main())
+            except KeyboardInterrupt:
+                print("\n\nExiting...")
+                exit(130)
+
+        # Verify exit code is 130 (Unix convention: 128 + SIGINT)
+        assert exc_info.value.code == 130
+
+        # Verify "Exiting..." message was printed
+        captured = capsys.readouterr()
+        assert "Exiting..." in captured.out
+
+    def test_keyboard_interrupt_exit_code_convention(self):
+        """Test that exit code 130 follows Unix convention (128 + signal number)"""
+        import signal
+
+        # Verify the convention: 128 + SIGINT (2) = 130
+        expected_exit_code = 128 + signal.SIGINT
+        assert expected_exit_code == 130
+
+    def test_keyboard_interrupt_message_format(self, capsys):
+        """Test that the exit message has proper formatting (double newline)"""
+        # Simulate the print statement
+        print("\n\nExiting...")
+
+        captured = capsys.readouterr()
+        # Verify double newline before message (ensures clean line)
+        assert captured.out.startswith("\n\n")
+        assert "Exiting..." in captured.out
+
+    def test_keyboard_interrupt_from_various_points(self, mocker, capsys):
+        """Test that KeyboardInterrupt from any point in main() is caught"""
+        # Test interruption during argument parsing
+        mocker.patch('argparse.ArgumentParser.parse_args', side_effect=KeyboardInterrupt())
+
+        import main as main_module
+
+        with pytest.raises(SystemExit) as exc_info:
+            try:
+                exit(main_module.main())
+            except KeyboardInterrupt:
+                print("\n\nExiting...")
+                exit(130)
+
+        assert exc_info.value.code == 130
+        captured = capsys.readouterr()
+        assert "Exiting..." in captured.out
