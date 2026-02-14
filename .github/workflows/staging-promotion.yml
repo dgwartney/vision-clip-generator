@@ -53,6 +53,8 @@ jobs:
     name: Promote to Staging
     runs-on: ubuntu-latest
     needs: request-approval
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
