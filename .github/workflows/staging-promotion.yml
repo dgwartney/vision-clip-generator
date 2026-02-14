@@ -1,0 +1,94 @@
+name: Staging Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: 'Source branch to promote (default: main)'
+        required: false
+        default: 'main'
+
+jobs:
+  validate:
+    name: Validate Source Branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_branch }}
+          fetch-depth: 0
+
+      - name: Verify branch exists
+        run: |
+          git fetch origin
+          if ! git show-ref --verify --quiet refs/remotes/origin/${{ github.event.inputs.source_branch }}; then
+            echo "Error: Branch ${{ github.event.inputs.source_branch }} does not exist"
+            exit 1
+          fi
+          echo "Source branch validated: ${{ github.event.inputs.source_branch }}"
+
+      - name: Check CI status
+        run: |
+          echo "Checking latest CI status on ${{ github.event.inputs.source_branch }}"
+          gh run list --branch ${{ github.event.inputs.source_branch }} --workflow=ci.yml --limit 1 --json conclusion --jq '.[0].conclusion'
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  request-approval:
+    name: Request Manual Approval
+    runs-on: ubuntu-latest
+    needs: validate
+    environment:
+      name: staging
+
+    steps:
+      - name: Approval notification
+        run: |
+          echo "Staging promotion approved for ${{ github.event.inputs.source_branch }}"
+          echo "Proceeding with merge to staging branch"
+
+  promote-to-staging:
+    name: Promote to Staging
+    runs-on: ubuntu-latest
+    needs: request-approval
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create or update staging branch
+        run: |
+          git fetch origin
+
+          if git show-ref --verify --quiet refs/remotes/origin/staging; then
+            echo "Staging branch exists, merging changes"
+            git checkout staging
+            git pull origin staging
+            git merge origin/${{ github.event.inputs.source_branch }} --no-ff -m "Promote ${{ github.event.inputs.source_branch }} to staging"
+          else
+            echo "Creating new staging branch from ${{ github.event.inputs.source_branch }}"
+            git checkout -b staging
+          fi
+
+      - name: Push to staging
+        run: git push origin staging
+
+      - name: Create summary
+        run: |
+          echo "## Staging Promotion Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: \`${{ github.event.inputs.source_branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: \`staging\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`$(git rev-parse HEAD | cut -c1-8)\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

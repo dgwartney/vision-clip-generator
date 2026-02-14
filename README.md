@@ -1,5 +1,11 @@
 # VisionClip Generator
 
+![CI Pipeline](https://github.com/dgwartney/vision-clip-generator/workflows/CI%20Pipeline/badge.svg)
+![Security Scanning](https://github.com/dgwartney/vision-clip-generator/workflows/Security%20Scanning/badge.svg)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+
+> Automated conversational audio demo generator with Text-to-Speech and microphone recording
+
 ## Pre-requisites
 
 This project uses `uv` for Python environment and dependency management.
