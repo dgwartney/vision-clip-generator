@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-02-14
+
 ### Added
 - Comprehensive unit tests for AWS Polly TTS provider (10 tests, 85% coverage)
 - Comprehensive unit tests for Azure TTS provider (11 tests, 82% coverage)
@@ -14,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development workflow makefile targets: `install-dev` and `check-dev`
 - Enhanced testing documentation in README with multiple test execution approaches
 - System dependencies documentation (Python, uv, ffmpeg)
+- CHANGELOG.md following Keep a Changelog format
 
 ### Changed
 - Overall test coverage increased from 75% to 93%
