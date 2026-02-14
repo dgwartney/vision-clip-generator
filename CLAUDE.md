@@ -163,6 +163,13 @@ vision-clip --file dialogs/confirmation.txt --log-level WARNING --log-file
 - Output filename derived from input: `dialogs/confirmation.txt` → `confirmation.wav`
 - Explicit `--output` always overrides
 
+**Output Directory Validation**:
+- **Automatic validation**: Checks if output directory exists before processing
+- **Permission checking**: Validates write permissions on parent directories
+- **User prompts**: Requests confirmation before creating new directories
+- **Error handling**: Provides clear, actionable error messages for permission issues
+- **Solutions offered**: Use different path, create manually (`mkdir -p`), or fix permissions (`chmod +w`)
+
 **Logging**:
 - **Python standard logging**: Flexible, configurable logging system
 - **Console (default)**: INFO level messages (progress, dialogue lines, success)
@@ -192,6 +199,9 @@ The project includes comprehensive unit tests in the `tests/` directory covering
 - Environment variable handling
 - Audio file operations and concatenation
 - Recording duration calculations
+- Output directory validation and permission checking
+- File write exception handling with informative error messages
+- User prompt interaction for directory creation
 - Integration tests with temporary files
 
 All tests use mocking to avoid external dependencies and actual API calls.

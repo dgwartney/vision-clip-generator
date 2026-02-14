@@ -313,7 +313,13 @@ class VisionClipGenerator:
         # Concatenate all audio files into final output using pydub
         num_segments = len(self.final_audio.split())
         logger.info(f"Concatenating {num_segments} audio segments into {output_file}")
-        self.concatenate_audio_files(self.final_audio, output_file)
+        try:
+            self.concatenate_audio_files(self.final_audio, output_file)
+        except (PermissionError, OSError) as e:
+            logger.error(f"Failed to write output file '{output_file}'")
+            logger.error(f"Error: {e}")
+            logger.error(f"Solution: Check permissions or choose a different output path")
+            raise
 
         # Clean up temp directory (unless --keep-temp flag is set)
         if not self.keep_temp:
@@ -371,6 +377,47 @@ def main():
         input_basename = os.path.basename(args.file)
         input_name, _ = os.path.splitext(input_basename)
         args.output = f"{input_name}.wav"
+
+    # Validate output directory
+    output_dir = os.path.dirname(args.output)
+    if output_dir:  # Only if output path includes a directory
+        if not os.path.exists(output_dir):
+            # Check if we have permission to create the directory
+            # Find the first existing parent directory to check permissions
+            parent_dir = output_dir
+            while parent_dir and not os.path.exists(parent_dir):
+                parent_dir = os.path.dirname(parent_dir)
+
+            # Handle empty parent_dir (happens with relative paths like "output")
+            if not parent_dir:
+                parent_dir = '.'  # Current working directory
+
+            # If we don't have write permission
+            if not os.access(parent_dir, os.W_OK):
+                logger.error(f"Cannot create output directory '{output_dir}'")
+                logger.error(f"Reason: No write permission in parent directory '{os.path.abspath(parent_dir)}'")
+                logger.error(f"Solution: Either:")
+                logger.error(f"  1. Choose a different output path with --output <path>")
+                logger.error(f"  2. Create the directory manually: mkdir -p {output_dir}")
+                logger.error(f"  3. Fix permissions: chmod +w {os.path.abspath(parent_dir)}")
+                return 1
+
+            # Prompt user before creating directory
+            print(f"\nOutput directory does not exist: {output_dir}")
+            response = input(f"Create directory? (y/n): ").strip().lower()
+            if response != 'y':
+                logger.info("Directory creation cancelled by user")
+                return 1
+
+            # Create the directory
+            try:
+                os.makedirs(output_dir, exist_ok=True)
+                logger.info(f"Created output directory: {output_dir}")
+            except (PermissionError, OSError) as e:
+                logger.error(f"Failed to create output directory '{output_dir}'")
+                logger.error(f"Error: {e}")
+                logger.error(f"Solution: Create the directory manually or choose a different path")
+                return 1
 
     logger.info(f"Vision Clip Generator starting")
     logger.debug(f"Input file: {args.file}")

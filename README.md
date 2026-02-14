@@ -156,6 +156,9 @@ The test suite includes:
 - Environment variable handling
 - Audio file operations
 - Recording duration calculations
+- Output directory validation and permission checking
+- File write exception handling with informative error messages
+- User prompt interaction for directory creation
 - Integration tests
 
 All tests use mocking to avoid external dependencies and actual API calls.
@@ -186,6 +189,7 @@ You can also use the generator programmatically in your own Python code:
 
 ```python
 from main import VisionClipGenerator
+import os
 
 # Create generator instance (reads GOOGLE_API_KEY from environment)
 generator = VisionClipGenerator()
@@ -196,14 +200,21 @@ generator = VisionClipGenerator(api_key='your-api-key')
 # Generate audio from dialog file
 output_file = generator.generate('dialogs/confirmation.txt', record_mode=True)
 print(f"Generated: {output_file}")
+
+# When using custom output paths, ensure the directory exists
+output_path = 'output/demos/my-clip.wav'
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+generator.generate('dialogs/confirmation.txt', record_mode=False, output_file=output_path)
 ```
 
 ### Main Class Methods
 
 - `__init__(api_key=None)`: Initialize with optional API key
-- `generate(filepath, record_mode=False)`: Main entry point to generate vision clips
+- `generate(filepath, record_mode=False, output_file='vc.wav')`: Main entry point to generate vision clips
 - `text_to_wav(voice, rate, locale, text, filename)`: Convert text to WAV
-- `process_dialog_file(filepath, record_mode)`: Process entire dialog script
+- `process_dialog_file(filepath, record_mode, output_file)`: Process entire dialog script
+
+**Note**: When using programmatically, ensure output directories exist before calling `generate()`. The class will raise `PermissionError` or `OSError` with descriptive messages if the output file cannot be written.
 
 ## How to Execute the Script
 
@@ -283,6 +294,21 @@ By default, the output filename is derived from the input file:
 - `foo/bar/test.txt` → `test.wav`
 - `myfile` → `myfile.wav`
 - Explicit `--output` always overrides this behavior
+
+**Output Directory Validation**:
+The application validates output paths before processing to prevent errors:
+- **Directory existence**: If the output path includes a directory that doesn't exist, you'll be prompted to create it
+- **Permission checking**: Validates write permissions on parent directories before attempting creation
+- **User confirmation**: Prompts for confirmation before creating new directories
+  ```
+  Output directory does not exist: /path/to/newdir
+  Create directory? (y/n):
+  ```
+- **Clear error messages**: If permissions are insufficient, provides actionable solutions:
+  - Use a different output path with `--output`
+  - Create the directory manually with `mkdir -p`
+  - Fix permissions with `chmod +w`
+- **Automatic handling**: Existing directories are used without prompting
 
 **Logging**:
 The application uses Python's standard logging module with flexible configuration:

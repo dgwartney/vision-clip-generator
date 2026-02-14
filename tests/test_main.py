@@ -651,3 +651,306 @@ class TestLoggingSetup:
 
         # Should still have console handler
         assert len(root_logger.handlers) == 1
+
+
+class TestOutputDirectoryValidation:
+    """Test output directory validation and creation"""
+
+    @pytest.fixture
+    def mock_main_setup(self, mocker, tmp_path):
+        """Setup common mocks for main() testing"""
+        # Mock environment
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+
+        # Create a sample dialog file
+        dialog_file = tmp_path / "test.txt"
+        dialog_file.write_text("<ringback>\nIVA: Test\n<hangup>")
+
+        # Mock VisionClipGenerator and its methods
+        mock_generator = Mock()
+        mock_generator.generate.return_value = 'output.wav'
+        mocker.patch('main.VisionClipGenerator', return_value=mock_generator)
+
+        # Mock logging setup
+        mocker.patch('main.setup_logging')
+
+        return {
+            'dialog_file': str(dialog_file),
+            'mock_generator': mock_generator,
+            'tmp_path': tmp_path
+        }
+
+    def test_output_directory_exists(self, mocker, mock_main_setup):
+        """Test when output directory already exists"""
+        from main import main
+
+        output_dir = mock_main_setup['tmp_path'] / "existing"
+        output_dir.mkdir()
+        output_file = output_dir / "output.wav"
+
+        # Mock sys.argv
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file)])
+
+        # Should succeed without prompting
+        result = main()
+
+        assert result == 0
+        mock_main_setup['mock_generator'].generate.assert_called_once()
+
+    def test_output_no_directory_specified(self, mocker, mock_main_setup):
+        """Test when output is just a filename (no directory)"""
+        from main import main
+
+        # Mock sys.argv with simple filename
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', 'simple.wav'])
+
+        # Should succeed without any directory checks
+        result = main()
+
+        assert result == 0
+        mock_main_setup['mock_generator'].generate.assert_called_once()
+
+    def test_output_directory_not_exists_user_confirms(self, mocker, mock_main_setup):
+        """Test creating directory when user confirms"""
+        from main import main
+
+        output_dir = mock_main_setup['tmp_path'] / "newdir" / "subdir"
+        output_file = output_dir / "output.wav"
+
+        # Mock user input to confirm
+        mocker.patch('builtins.input', return_value='y')
+        mocker.patch('builtins.print')
+
+        # Mock sys.argv
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file)])
+
+        result = main()
+
+        assert result == 0
+        assert output_dir.exists()  # Directory should be created
+        mock_main_setup['mock_generator'].generate.assert_called_once()
+
+    def test_output_directory_not_exists_user_declines(self, mocker, mock_main_setup):
+        """Test when user declines directory creation"""
+        from main import main
+
+        output_dir = mock_main_setup['tmp_path'] / "newdir"
+        output_file = output_dir / "output.wav"
+
+        # Mock user input to decline
+        mocker.patch('builtins.input', return_value='n')
+        mocker.patch('builtins.print')
+
+        # Mock sys.argv
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file)])
+
+        result = main()
+
+        assert result == 1  # Should exit with error
+        assert not output_dir.exists()  # Directory should NOT be created
+        mock_main_setup['mock_generator'].generate.assert_not_called()
+
+    def test_output_directory_no_write_permission(self, mocker, mock_main_setup):
+        """Test when no write permission on parent directory"""
+        from main import main
+
+        output_file = "/root/restricted/output.wav"
+
+        # Mock os.path.exists to return False for output_dir
+        def mock_exists(path):
+            if path == "/root/restricted":
+                return False
+            elif path == "/root":
+                return True
+            return os.path.exists(path)
+
+        mocker.patch('os.path.exists', side_effect=mock_exists)
+
+        # Mock os.access to deny write permission
+        mocker.patch('os.access', return_value=False)
+        mocker.patch('builtins.print')
+
+        # Mock sys.argv
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', output_file])
+
+        result = main()
+
+        assert result == 1  # Should exit with error
+        mock_main_setup['mock_generator'].generate.assert_not_called()
+
+    def test_output_directory_creation_fails(self, mocker, mock_main_setup):
+        """Test when directory creation fails due to OS error"""
+        from main import main
+
+        output_dir = mock_main_setup['tmp_path'] / "newdir"
+        output_file = output_dir / "output.wav"
+
+        # Mock user input to confirm
+        mocker.patch('builtins.input', return_value='y')
+        mocker.patch('builtins.print')
+
+        # Mock os.makedirs to raise PermissionError
+        mocker.patch('os.makedirs', side_effect=PermissionError("Permission denied"))
+
+        # Mock sys.argv
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file)])
+
+        result = main()
+
+        assert result == 1  # Should exit with error
+        mock_main_setup['mock_generator'].generate.assert_not_called()
+
+    def test_output_directory_various_user_responses(self, mocker, mock_main_setup):
+        """Test various user input responses"""
+        from main import main
+
+        output_dir = mock_main_setup['tmp_path'] / "newdir"
+        output_file = output_dir / "output.wav"
+
+        mocker.patch('builtins.print')
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file)])
+
+        # Test 'Y' (uppercase) - should succeed because input is converted to lowercase
+        mocker.patch('builtins.input', return_value='Y')
+        result = main()
+        assert result == 0  # Should succeed because 'Y'.strip().lower() == 'y'
+        assert output_dir.exists()
+
+        # Test 'no' response
+        output_dir2 = mock_main_setup['tmp_path'] / "newdir2"
+        output_file2 = output_dir2 / "output.wav"
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                   '--output', str(output_file2)])
+        mocker.patch('builtins.input', return_value='no')
+        result = main()
+        assert result == 1  # Should fail because 'no' != 'y'
+        assert not output_dir2.exists()
+
+    def test_smart_output_path_with_directory_creation(self, mocker, mock_main_setup):
+        """Test smart output path derivation doesn't trigger directory creation"""
+        from main import main
+
+        # When no --output specified, smart path uses basename only (no directory)
+        mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file']])
+
+        result = main()
+
+        assert result == 0
+        # Should use 'test.wav' (no directory component)
+        # generate(filepath, record_mode, output_file)
+        call_args = mock_main_setup['mock_generator'].generate.call_args
+        output_file_arg = call_args[0][2]  # Third positional argument
+        assert output_file_arg == 'test.wav'
+
+    def test_relative_path_directory_creation(self, mocker, mock_main_setup):
+        """Test creating directory with relative path (e.g., 'output/demo.wav')"""
+        from main import main
+        import tempfile
+
+        # Use a temporary directory for testing
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Change to temp directory
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+
+                output_file = 'output/demo.wav'
+
+                # Mock user input to confirm
+                mocker.patch('builtins.input', return_value='y')
+                mocker.patch('builtins.print')
+
+                # Mock sys.argv
+                mocker.patch('sys.argv', ['main.py', '--file', mock_main_setup['dialog_file'],
+                                           '--output', output_file])
+
+                result = main()
+
+                assert result == 0
+                # Verify directory was created in current directory (not root)
+                assert os.path.exists('output')
+                assert os.path.isdir('output')
+
+            finally:
+                os.chdir(original_cwd)
+
+
+class TestOutputFileWriteExceptionHandling:
+    """Test exception handling during output file write"""
+
+    @pytest.fixture
+    def generator(self, mocker):
+        """Create a generator instance for testing"""
+        mocker.patch.dict(os.environ, {'GOOGLE_API_KEY': 'test_key'}, clear=True)
+        return VisionClipGenerator()
+
+    @pytest.fixture
+    def sample_dialog(self, tmp_path):
+        """Create a minimal dialog file"""
+        dialog_content = """<ringback>
+IVA: Test
+<hangup>
+"""
+        dialog_file = tmp_path / "test_dialog.txt"
+        dialog_file.write_text(dialog_content)
+        return str(dialog_file)
+
+    def test_concatenate_permission_error(self, generator, sample_dialog, mocker):
+        """Test handling of PermissionError during file write"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch('time.sleep')
+
+        # Mock concatenate_audio_files to raise PermissionError
+        mocker.patch.object(
+            generator,
+            'concatenate_audio_files',
+            side_effect=PermissionError("Permission denied")
+        )
+
+        with pytest.raises(PermissionError, match="Permission denied"):
+            generator.process_dialog_file(sample_dialog, record_mode=False, output_file='/readonly/output.wav')
+
+    def test_concatenate_os_error(self, generator, sample_dialog, mocker):
+        """Test handling of OSError during file write"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch('time.sleep')
+
+        # Mock concatenate_audio_files to raise OSError
+        mocker.patch.object(
+            generator,
+            'concatenate_audio_files',
+            side_effect=OSError("Disk full")
+        )
+
+        with pytest.raises(OSError, match="Disk full"):
+            generator.process_dialog_file(sample_dialog, record_mode=False, output_file='output.wav')
+
+    def test_error_logging_on_write_failure(self, generator, sample_dialog, mocker, caplog):
+        """Test that errors are properly logged when write fails"""
+        mocker.patch.object(generator, 'text_to_wav')
+        mocker.patch.object(generator, 'play_audio')
+        mocker.patch('time.sleep')
+
+        # Mock concatenate_audio_files to raise PermissionError
+        mocker.patch.object(
+            generator,
+            'concatenate_audio_files',
+            side_effect=PermissionError("No permission")
+        )
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(PermissionError):
+                generator.process_dialog_file(sample_dialog, record_mode=False, output_file='restricted.wav')
+
+        # Verify error was logged
+        assert "Failed to write output file" in caplog.text
+        assert "restricted.wav" in caplog.text
