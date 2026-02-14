@@ -66,6 +66,9 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Application-specific log files
+vision-clip.log
+
 # Translations
 *.mo
 *.pot
