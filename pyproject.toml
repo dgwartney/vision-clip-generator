@@ -1,6 +1,6 @@
 [project]
 name = "vision-clip-generator"
-version = "0.1.1"
+version = "0.2.0"
 description = "Python application that creates conversational audio demos by combining Text-to-Speech (TTS) and live microphone recordings"
 readme = "README.md"
 requires-python = ">=3.11"

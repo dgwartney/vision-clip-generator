@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-14
+
+### Added
+- **GitHub Actions CI/CD Pipeline**: Comprehensive automation for testing and deployment
+  - Multi-platform testing matrix: Linux (Ubuntu) and macOS with Python 3.11 and 3.12
+  - Automated test execution with coverage reporting on every push and pull request
+  - Codecov integration for coverage tracking and visualization
+  - Coverage artifacts retained for 30 days, test logs preserved on failure
+  - uv package manager caching for faster build times
+- **Manual Staging Promotion Workflow**: Controlled deployment to staging branch
+  - Manual approval gate using GitHub Environments
+  - Branch validation and CI status checking before promotion
+  - Automatic merge with conflict detection
+  - Detailed summary reports for each promotion
+- **Automated Dependency Updates**: Weekly dependency maintenance
+  - Scheduled Monday updates with automatic PR creation
+  - Full test suite execution on updated dependencies
+  - Manual trigger option for on-demand updates
+- **Security Scanning**: CodeQL analysis for vulnerability detection
+  - Runs on push, pull requests, and weekly schedule
+  - Results available in GitHub Security tab
+  - Python-specific security and quality checks
+- **System Dependencies**: PortAudio and libsndfile installation in CI
+  - Linux: portaudio19-dev and libsndfile1 via apt-get
+  - macOS: portaudio via Homebrew
+  - Fixes "PortAudio library not found" errors in CI environment
+- **Graceful Keyboard Interrupt Handling**: Clean Ctrl+C exit
+  - Catches KeyboardInterrupt and displays "Exiting..." message
+  - Returns proper Unix exit code 130 (128 + SIGINT)
+  - No stack trace on user interruption
+  - Comprehensive test coverage for interrupt handling
+- **CI Status Badges**: Added to README for visibility
+  - CI Pipeline status badge
+  - Security Scanning status badge
+  - Python version badge (3.11+)
+- **Comprehensive CI/CD Documentation**: `.github/CI_CD_GUIDE.md`
+  - Complete guide for contributors
+  - Troubleshooting section with common issues
+  - Cost analysis and resource management
+  - Best practices for testing and workflows
+
+### Changed
+- Repository visibility changed to public for unlimited Actions minutes
+- README updated with CI status badges and improved formatting
+- Enhanced project description with automation features
+
+### Fixed
+- CI test failures due to missing PortAudio system library
+- Keyboard interrupt displaying Python stack trace instead of clean exit
+
+### Infrastructure
+- **Estimated Actions Usage**: ~1,270 minutes/month
+- **Cost**: $0 (unlimited for public repositories)
+- **Test Coverage**: Maintained at 93%+ across all platforms
+
 ## [0.1.1] - 2026-02-14
 
 ### Added
